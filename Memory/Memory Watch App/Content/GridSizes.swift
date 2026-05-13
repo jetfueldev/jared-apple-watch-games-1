@@ -12,6 +12,8 @@ enum GridSizes {
         GridSize(pairs: 16, rows: 4, cols: 8),
     ]
 
+    static var startingSize: GridSize { all[1] }
+
     static func nextSize(after current: GridSize) -> GridSize? {
         guard let index = all.firstIndex(of: current),
               index + 1 < all.count else { return nil }

@@ -14,8 +14,7 @@ struct ThemePickerView: View {
                     NavigationLink(value: theme) {
                         CardSymbolView(symbol: theme.displayIcon, size: cellSize * 0.5)
                             .frame(width: cellSize, height: cellSize)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(.plain)
                 }
@@ -24,7 +23,7 @@ struct ThemePickerView: View {
             .frame(maxHeight: .infinity)
         }
         .navigationDestination(for: Theme.self) { theme in
-            SizePickerView(theme: theme)
+            GameView(theme: theme)
         }
     }
 }
