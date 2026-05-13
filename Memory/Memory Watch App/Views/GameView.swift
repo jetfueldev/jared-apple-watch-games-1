@@ -2,40 +2,76 @@ import SwiftUI
 
 struct GameView: View {
     let theme: Theme
-    let gridSize: GridSize
+    let initialSize: GridSize
 
-    @StateObject private var state: GameState
+    @State private var currentSize: GridSize
+    @State private var gameID = UUID()
+    @Environment(\.dismiss) private var dismiss
 
     init(theme: Theme, gridSize: GridSize) {
         self.theme = theme
+        self.initialSize = gridSize
+        self._currentSize = State(initialValue: gridSize)
+    }
+
+    var body: some View {
+        GameBoardView(theme: theme, gridSize: currentSize) {
+            if let next = GridSizes.nextSize(after: currentSize) {
+                currentSize = next
+                gameID = UUID()
+            } else {
+                dismiss()
+            }
+        }
+        .id(gameID)
+    }
+}
+
+private struct GameBoardView: View {
+    let theme: Theme
+    let gridSize: GridSize
+    let onWinDismissed: () -> Void
+
+    @StateObject private var state: GameState
+    @Environment(\.dismiss) private var dismiss
+
+    init(theme: Theme, gridSize: GridSize, onWinDismissed: @escaping () -> Void) {
+        self.theme = theme
         self.gridSize = gridSize
+        self.onWinDismissed = onWinDismissed
         self._state = StateObject(wrappedValue: GameState(theme: theme, gridSize: gridSize))
     }
 
     var body: some View {
         GeometryReader { geo in
             let spacing: CGFloat = 2
+            let statsHeight: CGFloat = 14
             let cardWidth = (geo.size.width - spacing * CGFloat(gridSize.cols - 1)) / CGFloat(gridSize.cols)
-            let cardHeight = (geo.size.height - 20 - spacing * CGFloat(gridSize.rows - 1)) / CGFloat(gridSize.rows)
+            let cardHeight = (geo.size.height - statsHeight - spacing * CGFloat(gridSize.rows - 1)) / CGFloat(gridSize.rows)
             let cardSize = min(cardWidth, cardHeight)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 HStack {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .onTapGesture { dismiss() }
                     HStack(spacing: 2) {
                         Image(systemName: "hand.tap")
-                            .font(.caption2)
+                            .font(.system(size: 8))
                         Text("\(state.moves)")
-                            .font(.caption2.monospacedDigit())
+                            .font(.system(size: 10).monospacedDigit())
                     }
                     Spacer()
                     HStack(spacing: 2) {
                         Image(systemName: "timer")
-                            .font(.caption2)
+                            .font(.system(size: 8))
                         Text(formatTime(state.elapsedTime))
-                            .font(.caption2.monospacedDigit())
+                            .font(.system(size: 10).monospacedDigit())
                     }
                 }
-                .padding(.horizontal, 4)
+                .frame(height: statsHeight)
+                .padding(.horizontal, 2)
 
                 VStack(spacing: spacing) {
                     ForEach(0..<gridSize.rows, id: \.self) { row in
@@ -54,8 +90,10 @@ struct GameView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(state.isComplete)
-        .fullScreenCover(isPresented: $state.isComplete) {
+        .ignoresSafeArea(edges: .horizontal)
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .fullScreenCover(isPresented: $state.isComplete, onDismiss: onWinDismissed) {
             WinView(state: state, theme: theme, gridSize: gridSize)
         }
     }

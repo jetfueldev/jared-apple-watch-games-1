@@ -34,5 +34,16 @@ enum Themes {
         ]
     )
 
-    static let all: [Theme] = [animals, food, vacation]
+    static let space = Theme(
+        id: "space",
+        displayIcon: .emoji("🚀"),
+        symbols: [
+            .emoji("🚀"), .emoji("🌍"), .emoji("🌙"), .emoji("⭐"),
+            .emoji("🛸"), .emoji("🪐"), .emoji("☄️"), .emoji("🌞"),
+            .emoji("🔭"), .emoji("👽"), .emoji("👩‍🚀"), .emoji("🛰️"),
+            .emoji("🌑"), .emoji("🌕"), .emoji("💫"), .emoji("🌌")
+        ]
+    )
+
+    static let all: [Theme] = [animals, food, vacation, space]
 }

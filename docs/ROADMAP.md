@@ -64,7 +64,7 @@ The smallest end-to-end playable game. Prove the loop works.
 
 ## Definition of Done — v1
 
-- [ ] 3 themes × 7 or 8 grid sizes all playable (depending on 16-pair decision)
+- [ ] 4 themes × 7 or 8 grid sizes all playable (depending on 16-pair decision)
 - [ ] Match / mismatch / win haptics tuned on real device
 - [ ] Best score (moves + time) persisted per (theme, size)
 - [ ] Theme picker + size picker, fully word-free
@@ -80,7 +80,8 @@ The smallest end-to-end playable game. Prove the loop works.
 
 Not commitments — a parking lot for things deliberately deferred from v1.
 
-- **Challenge Mode** — limited tries per level. Strong "1.1" update.
+- **Honeycomb Challenge Mode** — the flagship v2 feature. Inspired by the classic Apple Watch honeycomb home screen layout. Circular cards in a hex grid, Digital Crown zooms in/out, drag to pan, board extends beyond the screen. Mixed emoji pools across all themes. Much larger grids (20-30+ pairs). Targets adults who want a real challenge — fundamentally different from the standard grid game. Flow: Theme Picker → Difficulty (grid icon vs honeycomb icon, no words) → Game. This is the feature that makes Memory interesting for adults, not just kids.
+- **Challenge Mode (grid)** — limited tries per level. Strong "1.1" update.
 - **Daily Challenge** — one fixed seed per day, shared leaderboard via Game Center.
 - **More theme packs** — Plants, Vehicles, Faces (hard), Sports balls (hard).
 - **Custom illustrated themes** — replace emoji with original art for premium themes (paid?).

@@ -42,23 +42,24 @@ xcodebuild -scheme "Memory Watch App" -destination 'platform=watchOS Simulator,n
 ## Project structure
 
 ```
-WatchGames/
+Memory/
+├── Memory.xcodeproj/
 ├── Memory Watch App/
-│   ├── App/MemoryApp.swift
+│   ├── MemoryApp.swift
 │   ├── Models/          — CardSymbol, Theme, GridSize, Card, BestScore
 │   ├── Game/            — GameState, GameLogic, ScoreStore
-│   ├── Content/         — Themes.swift, GridSizes.swift (pure data)
+│   ├── Content/         — Themes.swift (4 themes), GridSizes.swift (pure data)
 │   ├── Haptics/         — Haptics.swift (thin WKInterfaceDevice wrapper)
-│   ├── Views/           — All SwiftUI views
+│   ├── Views/           — RootView, ThemePickerView, SizePickerView, GameView, CardView, WinView
 │   └── Assets.xcassets/
-├── docs/                — Design docs (PROJECT, ARCHITECTURE, UX, etc.)
+├── docs/                — Design docs (PROJECT, ARCHITECTURE, UX, ROADMAP, etc.)
 └── CLAUDE.md            — This file
 ```
 
 ## Key types
 
 - `CardSymbol` — `.emoji(String) | .image(String)` abstraction for future custom art
-- `Theme` — id, displayIcon, symbols pool (>= 16 symbols each)
+- `Theme` — id, displayIcon, symbols pool (>= 16 symbols each). 4 themes: Animals, Food, Vacation, Space
 - `GridSize` — pairs, rows, cols
 - `Card` — id, symbol, isFaceUp, isMatched
 - `GameState` — ObservableObject holding runtime level state
@@ -72,7 +73,7 @@ ThemePickerView → SizePickerView → GameView → WinView → (auto-advance to
 
 ## Current milestone
 
-**Milestone 0 — Scaffolding.** Project structure created, source files stubbed. Xcode project creation pending (Xcode not yet installed). Next: Milestone 1 — vertical slice with 1-pair Animals tutorial.
+**Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Nav bar hidden on game screen for max card space, small back chevron in stats bar. Current focus: polish and playtesting.
 
 ## Definition of done (any task)
 

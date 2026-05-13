@@ -43,8 +43,10 @@ class GameState: ObservableObject {
 
                 if GameLogic.isComplete(cards) {
                     stopTimer()
-                    isComplete = true
                     Haptics.playWin()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                        self?.isComplete = true
+                    }
                 }
             } else {
                 isProcessing = true
@@ -66,7 +68,7 @@ class GameState: ObservableObject {
 
     private func startTimer() {
         startTime = Date()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self, let start = self.startTime else { return }
             self.elapsedTime = Date().timeIntervalSince(start)
         }
@@ -75,10 +77,6 @@ class GameState: ObservableObject {
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
-    }
-
-    var bestScoreKey: String {
-        "bestScore.\(theme.id).\(gridSize.pairs)"
     }
 
     deinit {
