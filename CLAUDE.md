@@ -50,7 +50,7 @@ Memory/
 │   ├── Game/            — GameState, GameLogic, ScoreStore
 │   ├── Content/         — Themes.swift (4 themes), GridSizes.swift (pure data)
 │   ├── Haptics/         — Haptics.swift (thin WKInterfaceDevice wrapper)
-│   ├── Views/           — RootView, ThemePickerView, SizePickerView, GameView, CardView, WinView
+│   ├── Views/           — RootView, ThemePickerView, GameView, CardView, WinView
 │   └── Assets.xcassets/
 ├── docs/                — Design docs (PROJECT, ARCHITECTURE, UX, ROADMAP, etc.)
 └── CLAUDE.md            — This file
@@ -68,12 +68,16 @@ Memory/
 ## Navigation flow
 
 ```
-ThemePickerView → SizePickerView → GameView → WinView → (auto-advance to next size or back to menu)
+ThemePickerView (2x2 grid) → GameView (auto-starts at 2 pairs, auto-advances through all 8 sizes) → WinView (auto-dismiss 2.5s) → next size or back to menu
 ```
+
+## Design direction
+
+Zen / meditative. The game should feel like a calming mental health moment, not a competitive challenge. Muted colors (white.opacity 0.08-0.12), no 3D card effects, silent mismatch haptic, ghost-like win stats, no Liquid Glass. Everything whisper-soft.
 
 ## Current milestone
 
-**Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Nav bar hidden on game screen for max card space, small back chevron in stats bar. Current focus: polish and playtesting.
+**Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Zen redesign applied. SizePickerView removed. Current focus: polish, clock positioning, and playtesting.
 
 ## Definition of done (any task)
 

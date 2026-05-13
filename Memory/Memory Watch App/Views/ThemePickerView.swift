@@ -3,8 +3,8 @@ import SwiftUI
 struct ThemePickerView: View {
     var body: some View {
         GeometryReader { geo in
-            let spacing: CGFloat = 8
-            let cellSize = (geo.size.width - spacing - 16) / 2
+            let spacing: CGFloat = 10
+            let cellSize = (geo.size.width - spacing - 20) / 2
 
             LazyVGrid(columns: [
                 GridItem(.fixed(cellSize), spacing: spacing),
@@ -12,14 +12,17 @@ struct ThemePickerView: View {
             ], spacing: spacing) {
                 ForEach(Themes.all) { theme in
                     NavigationLink(value: theme) {
-                        CardSymbolView(symbol: theme.displayIcon, size: cellSize * 0.5)
+                        CardSymbolView(symbol: theme.displayIcon, size: cellSize * 0.45)
                             .frame(width: cellSize, height: cellSize)
-                            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(.white.opacity(0.08))
+                            )
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             .frame(maxHeight: .infinity)
         }
         .navigationDestination(for: Theme.self) { theme in

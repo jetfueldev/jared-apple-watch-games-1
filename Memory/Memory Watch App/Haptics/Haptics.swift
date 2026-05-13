@@ -6,17 +6,14 @@ enum Haptics {
     }
 
     static func playMatch() {
-        WKInterfaceDevice.current().play(.success)
+        WKInterfaceDevice.current().play(.click)
     }
 
     static func playMismatch() {
-        WKInterfaceDevice.current().play(.retry)
+        // silence — no punishment, just flip back quietly
     }
 
     static func playWin() {
-        WKInterfaceDevice.current().play(.success)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            WKInterfaceDevice.current().play(.success)
-        }
+        WKInterfaceDevice.current().play(.click)
     }
 }

@@ -10,23 +10,18 @@ struct CardView: View {
 
     var body: some View {
         ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(isShowingFront ? .white.opacity(0.08) : .white.opacity(0.12))
+
             if isShowingFront {
-                CardSymbolView(symbol: card.symbol, size: cardSize * 0.6)
+                CardSymbolView(symbol: card.symbol, size: cardSize * 0.55)
+                    .transition(.opacity)
             }
         }
         .frame(width: cardSize, height: cardSize)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isShowingFront ? .white.opacity(0.12) : .blue.opacity(0.35))
-                .stroke(.white.opacity(0.08), lineWidth: 0.5)
-        )
-        .rotation3DEffect(
-            .degrees(isShowingFront ? 0 : 180),
-            axis: (x: 0, y: 1, z: 0),
-            perspective: 0.5
-        )
-        .opacity(card.isMatched ? 0.4 : 1.0)
-        .animation(.easeInOut(duration: 0.3), value: card.isFaceUp)
-        .animation(.easeInOut(duration: 0.3), value: card.isMatched)
+        .scaleEffect(card.isMatched ? 0.92 : 1.0)
+        .opacity(card.isMatched ? 0.25 : 1.0)
+        .animation(.easeInOut(duration: 0.45), value: card.isFaceUp)
+        .animation(.easeOut(duration: 0.6), value: card.isMatched)
     }
 }

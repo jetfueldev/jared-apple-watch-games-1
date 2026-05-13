@@ -31,7 +31,6 @@ private struct GameBoardView: View {
     let onWinDismissed: () -> Void
 
     @StateObject private var state: GameState
-    @State private var showEdgeHint = true
 
     init(theme: Theme, gridSize: GridSize, onWinDismissed: @escaping () -> Void) {
         self.theme = theme
@@ -42,23 +41,23 @@ private struct GameBoardView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let spacing: CGFloat = 2
-            let barHeight: CGFloat = 3
+            let spacing: CGFloat = 3
+            let barHeight: CGFloat = 2
             let cardWidth = (geo.size.width - spacing * CGFloat(gridSize.cols - 1)) / CGFloat(gridSize.cols)
-            let cardHeight = (geo.size.height - barHeight - 4 - spacing * CGFloat(gridSize.rows - 1)) / CGFloat(gridSize.rows)
+            let cardHeight = (geo.size.height - barHeight - 6 - spacing * CGFloat(gridSize.rows - 1)) / CGFloat(gridSize.rows)
             let cardSize = min(cardWidth, cardHeight)
             let matchedPairs = state.cards.filter { $0.isMatched }.count / 2
             let matchProgress = gridSize.pairs > 0 ? CGFloat(matchedPairs) / CGFloat(gridSize.pairs) : 0
 
             ZStack(alignment: .leading) {
-                VStack(spacing: 2) {
+                VStack(spacing: 4) {
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(.white.opacity(0.15))
+                            .fill(.white.opacity(0.06))
                         Capsule()
-                            .fill(.green)
+                            .fill(.white.opacity(0.25))
                             .frame(width: geo.size.width * matchProgress)
-                            .animation(.easeInOut(duration: 0.3), value: matchProgress)
+                            .animation(.easeInOut(duration: 0.5), value: matchProgress)
                     }
                     .frame(height: barHeight)
 
@@ -83,24 +82,10 @@ private struct GameBoardView: View {
                     Spacer()
                 }
 
-                if showEdgeHint {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(.white.opacity(0.3))
-                        .frame(width: 3, height: 30)
-                        .padding(.leading, 1)
-                        .transition(.opacity)
-                }
             }
         }
         .ignoresSafeArea(edges: .horizontal)
         .navigationBarBackButtonHidden(true)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation(.easeOut(duration: 0.5)) {
-                    showEdgeHint = false
-                }
-            }
-        }
         .fullScreenCover(isPresented: $state.isComplete, onDismiss: onWinDismissed) {
             WinView(state: state, theme: theme, gridSize: gridSize)
         }
