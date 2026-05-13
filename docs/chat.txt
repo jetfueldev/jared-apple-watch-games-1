@@ -1,0 +1,20 @@
+ok, I'm goign to move to claude code and start building. Can you output comprehensive .md files to get claude code up to speed with the thorough conversations we've been having?6:12 PMClaude responded: Absolutely.Absolutely. Let me build out a proper docs set so Claude Code has full context. I'll create separate files for different concerns — keeps each one focused and lets you update them independently as the project evolves.Created 7 files, ran 2 commands, read a fileCreated 7 files, ran 2 commands, read a fileSeven files, organized by concern so you can update each independently:
+
+CLAUDE.md — entry point. Tells Claude Code what to read and in what order, plus working agreement and stack.
+PROJECT.md — vision, locked decisions, open questions to validate on device, what's out of scope.
+ARCHITECTURE.md — file layout, key types (CardSymbol, Theme, GridSize, Card, GameState, BestScore), state management, patterns to follow and avoid.
+PROGRESSION.md — the 1→16 ramp, theme packs with full emoji lists, future themes, score storage scheme.
+UX.md — no-words rule with practical replacements, screen-by-screen flow, haptic palette, animation timings, accessibility.
+ROADMAP.md — milestone-by-milestone build order from scaffolding to ship, definition of done, post-v1 ideas, shipping discipline.
+COLLECTION.md — background on the broader 5-game vision (read last; it's context, not instructions).
+
+To set up in Claude Code:
+
+Create your watchOS app project in Xcode first
+Drop all 7 files in the repo root (next to your .xcodeproj)
+Launch Claude Code from that directory
+First message: "Read CLAUDE.md and then the other docs it references. Once you've read everything, summarize back to me what we're building and propose how to start Milestone 0."
+
+That summary-back step is worth doing — it catches misunderstandings before code is written.
+One last note: as decisions evolve during the build (haptic timings get tuned, 16-pair gets kept or cut, etc.), update the relevant doc. The docs are the source of truth, not the conversation history. Keep them current and they'll stay useful for game 2, 3, 4, 5.
+Good luck — this is a great project. Go ship it.
