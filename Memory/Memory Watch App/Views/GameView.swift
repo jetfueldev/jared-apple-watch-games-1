@@ -63,6 +63,8 @@ private struct GameBoardView: View {
     @State private var dragStartPanX: CGFloat = 0
     @State private var dragStartPanY: CGFloat = 0
     @State private var zoomLevel: CGFloat = 1.0
+    @State private var showIndicators: Bool = false
+    @State private var indicatorTimer: Timer?
 
     private var needsHoneycomb: Bool {
         gridSize.rows > GridSizes.viewportRows || gridSize.cols > GridSizes.viewportCols
@@ -169,6 +171,8 @@ private struct GameBoardView: View {
                             zoomFraction: zoomFraction,
                             viewportSize: CGSize(width: viewportW, height: viewportH)
                         )
+                        .opacity(showIndicators ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.3), value: showIndicators)
                     }
                 }
                 .frame(width: viewportW, height: viewportH)
@@ -176,6 +180,7 @@ private struct GameBoardView: View {
                     .onChanged { value in
                         panX = dragStartPanX + value.translation.width
                         panY = dragStartPanY + value.translation.height
+                        flashIndicators()
                     }
                     .onEnded { value in
                         panX = min(max(panX, -maxPanX), maxPanX)
@@ -198,6 +203,7 @@ private struct GameBoardView: View {
                 panY = min(max(panY, -maxPanY), maxPanY)
                 dragStartPanX = panX
                 dragStartPanY = panY
+                flashIndicators()
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -231,6 +237,17 @@ private struct GameBoardView: View {
             } else {
                 ScoreStore.shared.saveGameSnapshot(state.snapshot())
             }
+            if needsHoneycomb {
+                flashIndicators()
+            }
+        }
+    }
+
+    private func flashIndicators() {
+        showIndicators = true
+        indicatorTimer?.invalidate()
+        indicatorTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
+            showIndicators = false
         }
     }
 }
