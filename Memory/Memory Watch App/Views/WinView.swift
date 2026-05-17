@@ -55,6 +55,7 @@ struct WinView: View {
 
             let newBest = isNewBest
             ScoreStore.shared.saveBestScore(score, themeID: theme.id, pairs: gridSize.pairs)
+            ScoreStore.shared.clearGameSnapshot(themeID: theme.id)
 
             if newBest {
                 withAnimation(.easeOut(duration: 0.6).delay(0.4)) {

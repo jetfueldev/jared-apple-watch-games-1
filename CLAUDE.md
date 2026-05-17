@@ -33,10 +33,10 @@ Detailed design docs live in `docs/`. Read in this order:
 
 ```bash
 # Build (requires Xcode)
-xcodebuild -scheme "Memory Watch App" -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (41mm)' build
+xcodebuild -scheme "Memory Watch App" -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (42mm)' build
 
 # Run tests
-xcodebuild -scheme "Memory Watch App" -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (41mm)' test
+xcodebuild -scheme "Memory Watch App" -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (42mm)' test
 ```
 
 ## Project structure

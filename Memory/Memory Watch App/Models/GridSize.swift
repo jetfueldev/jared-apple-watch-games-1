@@ -8,8 +8,19 @@ struct GridSize: Identifiable, Hashable {
     var id: Int { pairs }
     var totalCards: Int { pairs * 2 }
 
+    var lastRowCount: Int {
+        let remainder = totalCards % cols
+        return remainder == 0 ? cols : remainder
+    }
+
+    func cardsInRow(_ row: Int) -> Int {
+        if row == rows - 1 {
+            return lastRowCount
+        }
+        return cols
+    }
+
     init(pairs: Int, rows: Int, cols: Int) {
-        assert(rows * cols == pairs * 2, "Grid dimensions must equal pairs * 2")
         self.pairs = pairs
         self.rows = rows
         self.cols = cols

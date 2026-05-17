@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum CardSymbol: Hashable {
+enum CardSymbol: Hashable, Codable {
     case emoji(String)
     case image(String)
 }

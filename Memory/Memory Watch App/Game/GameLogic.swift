@@ -2,7 +2,18 @@ import Foundation
 
 enum GameLogic {
     static func dealCards(theme: Theme, pairs: Int) -> [Card] {
-        let pool = theme.symbols.shuffled().prefix(pairs)
+        var pool: [CardSymbol]
+        if pairs <= theme.symbols.count {
+            pool = Array(theme.symbols.shuffled().prefix(pairs))
+        } else {
+            let allSymbols = Themes.all.flatMap { $0.symbols }
+            let unique = Array(Set(allSymbols)).shuffled()
+            pool = Array(unique.prefix(pairs))
+            while pool.count < pairs {
+                pool.append(pool[pool.count % unique.count])
+            }
+        }
+
         let cards = pool.flatMap { symbol in
             [Card(id: UUID(), symbol: symbol),
              Card(id: UUID(), symbol: symbol)]

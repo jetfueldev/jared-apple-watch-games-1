@@ -11,7 +11,7 @@ struct CardView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 6)
-                .fill(isShowingFront ? .white.opacity(0.08) : .white.opacity(0.12))
+                .fill(isShowingFront ? .white.opacity(0.10) : .white.opacity(0.15))
 
             if isShowingFront {
                 CardSymbolView(symbol: card.symbol, size: cardSize * 0.55)

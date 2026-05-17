@@ -14,11 +14,38 @@ class GameState: ObservableObject {
     private var isProcessing: Bool = false
     private var timer: Timer?
     private var startTime: Date?
+    private var priorElapsed: TimeInterval = 0
 
     init(theme: Theme, gridSize: GridSize) {
         self.theme = theme
         self.gridSize = gridSize
         self.cards = GameLogic.dealCards(theme: theme, pairs: gridSize.pairs)
+    }
+
+    init(theme: Theme, gridSize: GridSize, snapshot: GameSnapshot) {
+        self.theme = theme
+        self.gridSize = gridSize
+        self.cards = snapshot.cards.map { card in
+            var c = card
+            if c.isFaceUp && !c.isMatched {
+                c.isFaceUp = false
+            }
+            return c
+        }
+        self.moves = snapshot.moves
+        self.elapsedTime = snapshot.elapsedTime
+        self.priorElapsed = snapshot.elapsedTime
+    }
+
+    func snapshot() -> GameSnapshot {
+        GameSnapshot(
+            themeID: theme.id,
+            pairs: gridSize.pairs,
+            cards: cards,
+            moves: moves,
+            elapsedTime: elapsedTime,
+            savedAt: Date()
+        )
     }
 
     func tapCard(at index: Int) {
@@ -54,7 +81,7 @@ class GameState: ObservableObject {
 
                 let first = firstIndex
                 let second = index
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.04) { [weak self] in
                     self?.cards[first].isFaceUp = false
                     self?.cards[second].isFaceUp = false
                     self?.isProcessing = false
@@ -70,7 +97,7 @@ class GameState: ObservableObject {
         startTime = Date()
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self, let start = self.startTime else { return }
-            self.elapsedTime = Date().timeIntervalSince(start)
+            self.elapsedTime = self.priorElapsed + Date().timeIntervalSince(start)
         }
     }
 
