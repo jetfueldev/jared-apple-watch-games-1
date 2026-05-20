@@ -24,7 +24,7 @@ struct RootView: View {
 }
 
 private func randomLargeSize() -> GridSize {
-    let pairs = Int.random(in: 18...50)
+    let pairs = Int.random(in: 18...32)
     return GridSizes.squareSize(pairs: pairs)
 }
 

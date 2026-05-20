@@ -81,6 +81,7 @@ The smallest end-to-end playable game. Prove the loop works.
 Not commitments — a parking lot for things deliberately deferred from v1.
 
 - **Honeycomb Challenge Mode** — the flagship v2 feature. Inspired by the classic Apple Watch honeycomb home screen layout. Circular cards in a hex grid, Digital Crown zooms in/out, drag to pan, board extends beyond the screen. Mixed emoji pools across all themes. Much larger grids (20-30+ pairs). Targets adults who want a real challenge — fundamentally different from the standard grid game. Flow: Theme Picker → Difficulty (grid icon vs honeycomb icon, no words) → Game. This is the feature that makes Memory interesting for adults, not just kids.
+- **3D scroll indicators** — scroll position indicators (bottom + right) rendered with depth/shadow instead of flat rectangles. Subtle 3D effect to match the honeycomb's spatial feel.
 - **Challenge Mode (grid)** — limited tries per level. Strong "1.1" update.
 - **Daily Challenge** — one fixed seed per day, shared leaderboard via Game Center.
 - **More theme packs** — Plants, Vehicles, Faces (hard), Sports balls (hard).

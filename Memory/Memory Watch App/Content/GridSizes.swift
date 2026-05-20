@@ -6,7 +6,7 @@ enum GridSizes {
 
     static let all: [GridSize] = (2...30).map { pairs in
         let totalCards = pairs * 2
-        let cols = 4
+        let cols = min(4, pairs)
         let rows = Int(ceil(Double(totalCards) / Double(cols)))
         return GridSize(pairs: pairs, rows: rows, cols: cols)
     }

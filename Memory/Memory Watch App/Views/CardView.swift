@@ -21,7 +21,7 @@ struct CardView: View {
         .frame(width: cardSize, height: cardSize)
         .scaleEffect(card.isMatched ? 0.92 : 1.0)
         .opacity(card.isMatched ? 0.25 : 1.0)
-        .animation(.easeInOut(duration: 0.45), value: card.isFaceUp)
+        .animation(.easeInOut(duration: 0.2), value: card.isFaceUp)
         .animation(.easeOut(duration: 0.6), value: card.isMatched)
     }
 }

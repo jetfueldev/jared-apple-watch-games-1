@@ -43,7 +43,7 @@ struct WinView: View {
 
             if showStar {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 24))
                     .foregroundStyle(.yellow.opacity(0.5))
                     .transition(.scale.combined(with: .opacity))
             }

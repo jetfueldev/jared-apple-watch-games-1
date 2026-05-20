@@ -255,7 +255,45 @@ The honeycomb grid + Crown zoom is the clearest example of the compounding payof
 
 ---
 
-## 12. Tools and stack
+## 12. Leaderboards and play history (future)
+
+**Goal:** A central system to capture high scores, play history, and aggregate stats across all games in the collection. Players could see their own history and optionally compare against others.
+
+### Options considered
+
+| Approach | Cost | Pros | Cons |
+|----------|------|------|------|
+| **Game Center** | Free (Apple-native) | Zero server, players expect it, leaderboards + achievements built-in | Limited to scores/achievements, no custom play history, Apple-only |
+| **CloudKit** | Free (included with Apple Developer Program) | Rich data, syncs across user's devices, no server to maintain, private by default | Apple-only, no public aggregate stats without extra work |
+| **Custom backend** (Supabase/Firebase free tier, or own server) | Free tier → low cost at scale | Full control, play history, anonymized aggregates, public leaderboards, cross-platform ready | Requires maintenance, networking code in the app |
+
+### Recommended approach (phased)
+
+1. **v1 (now):** Local-only scores via `@AppStorage`. No networking.
+2. **v1.1:** Add **Game Center** leaderboards — simplest lift, players get instant social value. Submit best scores per grid size per theme.
+3. **v2:** Add **CloudKit** for personal play history sync (games played, completion times, streaks, progression across devices).
+4. **v2+/optional:** Lightweight custom backend for public aggregate stats — "Top 100 fastest 30-pair completions this week," heat maps of which themes are most popular, etc. Could be as simple as a Cloudflare Worker + D1 database (free tier).
+
+### Data worth capturing
+
+- Per-game: theme, grid size, moves, time, completion %, timestamp
+- Aggregate: games started vs. completed, average moves per grid size, fastest completions
+- Leaderboard candidates: fastest time per grid size, fewest moves, longest streak (consecutive days played), largest grid completed
+
+### Privacy stance
+
+- **No account required.** Game Center handles identity if the player opts in.
+- **No tracking.** Analytics are gameplay stats, not user behavior/demographics.
+- **Anonymized aggregates only** for any public-facing data.
+- Aligns with the "no IAP, no ads, respect the player" brand.
+
+### Networking on watchOS
+
+watchOS supports `URLSession` for HTTP requests. Game Center and CloudKit both have watchOS APIs. Battery impact is minimal for occasional score submissions (not real-time). Submissions can be queued and sent opportunistically when connectivity is available.
+
+---
+
+## 13. Tools and stack
 
 - **SwiftUI + watchOS 10** (primary); **SpriteKit** via `SpriteView` for physics-based games
 - **Multiplayer tech:** Multipeer Connectivity over Bluetooth, no internet
@@ -266,3 +304,4 @@ The honeycomb grid + Crown zoom is the clearest example of the compounding payof
 ---
 
 *This file is reference material from claude.ai conversations. Operational rules for Claude Code live in `CLAUDE.md`. Per-game implementation specs live in each game's own design doc.*
+
