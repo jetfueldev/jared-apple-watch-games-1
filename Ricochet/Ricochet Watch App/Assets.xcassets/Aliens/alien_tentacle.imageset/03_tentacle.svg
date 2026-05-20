@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Helmet glass back ring -->
+  <circle cx="100" cy="95" r="68" fill="#C8E8FF" stroke="#1a1a1a" stroke-width="6"/>
+  <!-- Tentacles hanging below -->
+  <path d="M 60 145 Q 50 175 45 195" fill="none" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 60 145 Q 50 175 45 195" fill="none" stroke="#FF8FA3" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 80 155 Q 78 180 75 195" fill="none" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 80 155 Q 78 180 75 195" fill="none" stroke="#FF8FA3" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 100 158 Q 100 180 100 195" fill="none" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 100 158 Q 100 180 100 195" fill="none" stroke="#FF8FA3" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 120 155 Q 122 180 125 195" fill="none" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 120 155 Q 122 180 125 195" fill="none" stroke="#FF8FA3" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 140 145 Q 150 175 155 195" fill="none" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+  <path d="M 140 145 Q 150 175 155 195" fill="none" stroke="#FF8FA3" stroke-width="6" stroke-linecap="round"/>
+  <!-- Pink alien head inside helmet -->
+  <ellipse cx="100" cy="95" rx="45" ry="42" fill="#FF8FA3" stroke="#1a1a1a" stroke-width="6"/>
+  <!-- Eyes - three of them -->
+  <circle cx="82" cy="90" r="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="4"/>
+  <circle cx="82" cy="91" r="4" fill="#1a1a1a"/>
+  <circle cx="100" cy="80" r="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="4"/>
+  <circle cx="100" cy="81" r="4" fill="#1a1a1a"/>
+  <circle cx="118" cy="90" r="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="4"/>
+  <circle cx="118" cy="91" r="4" fill="#1a1a1a"/>
+  <!-- Mouth -->
+  <ellipse cx="100" cy="115" rx="10" ry="5" fill="#1a1a1a"/>
+  <!-- Helmet glass highlight -->
+  <path d="M 55 75 Q 60 55 85 50" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+  <!-- Helmet ring -->
+  <circle cx="100" cy="95" r="68" fill="none" stroke="#1a1a1a" stroke-width="6"/>
+</svg>

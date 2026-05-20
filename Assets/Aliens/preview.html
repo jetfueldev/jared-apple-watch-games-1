@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Alien Pack Preview</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 30px; }
+  h2 { margin-top: 40px; border-bottom: 1px solid #444; padding-bottom: 8px; font-weight: 500; }
+  .row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
+  .swatch { background: #f5f5f5; border-radius: 12px; padding: 8px; display: flex; align-items: center; justify-content: center; }
+  .swatch.dark { background: #000; }
+  .swatch img { display: block; }
+  .label { font-size: 11px; color: #888; text-align: center; margin-top: 4px; }
+  .item { text-align: center; }
+  .hex-grid { background: #000; padding: 30px; border-radius: 50%; width: 360px; height: 360px; display: flex; align-items: center; justify-content: center; }
+  .hex-grid svg { display: block; }
+  .caption { color: #888; font-size: 13px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h2>At ~120px (large card view, easy mode)</h2>
+<div class="row">
+  <div class="item"><div class="swatch"><img src="01_classic.svg" width="120"></div><div class="label">classic</div></div>
+  <div class="item"><div class="swatch"><img src="02_cyclops.svg" width="120"></div><div class="label">cyclops</div></div>
+  <div class="item"><div class="swatch"><img src="03_tentacle.svg" width="120"></div><div class="label">tentacle</div></div>
+  <div class="item"><div class="swatch"><img src="04_robot.svg" width="120"></div><div class="label">robot</div></div>
+  <div class="item"><div class="swatch"><img src="05_horned.svg" width="120"></div><div class="label">horned</div></div>
+  <div class="item"><div class="swatch"><img src="06_ufo.svg" width="120"></div><div class="label">ufo</div></div>
+</div>
+
+<h2>At ~60px (medium grid, 4-6 pairs)</h2>
+<div class="row">
+  <div class="item"><div class="swatch"><img src="01_classic.svg" width="60"></div></div>
+  <div class="item"><div class="swatch"><img src="02_cyclops.svg" width="60"></div></div>
+  <div class="item"><div class="swatch"><img src="03_tentacle.svg" width="60"></div></div>
+  <div class="item"><div class="swatch"><img src="04_robot.svg" width="60"></div></div>
+  <div class="item"><div class="swatch"><img src="05_horned.svg" width="60"></div></div>
+  <div class="item"><div class="swatch"><img src="06_ufo.svg" width="60"></div></div>
+</div>
+
+<h2>At ~32px (small grid, hardest mode / zoomed out)</h2>
+<p class="caption">Critical test: if any two are indistinguishable here, the pack needs work.</p>
+<div class="row">
+  <div class="item"><div class="swatch"><img src="01_classic.svg" width="32"></div></div>
+  <div class="item"><div class="swatch"><img src="02_cyclops.svg" width="32"></div></div>
+  <div class="item"><div class="swatch"><img src="03_tentacle.svg" width="32"></div></div>
+  <div class="item"><div class="swatch"><img src="04_robot.svg" width="32"></div></div>
+  <div class="item"><div class="swatch"><img src="05_horned.svg" width="32"></div></div>
+  <div class="item"><div class="swatch"><img src="06_ufo.svg" width="32"></div></div>
+</div>
+
+<h2>On black background (OLED watch context)</h2>
+<div class="row">
+  <div class="item"><div class="swatch dark"><img src="01_classic.svg" width="80"></div></div>
+  <div class="item"><div class="swatch dark"><img src="02_cyclops.svg" width="80"></div></div>
+  <div class="item"><div class="swatch dark"><img src="03_tentacle.svg" width="80"></div></div>
+  <div class="item"><div class="swatch dark"><img src="04_robot.svg" width="80"></div></div>
+  <div class="item"><div class="swatch dark"><img src="05_horned.svg" width="80"></div></div>
+  <div class="item"><div class="swatch dark"><img src="06_ufo.svg" width="80"></div></div>
+</div>
+
+<h2>Simulated honeycomb grid on watch (3 pairs)</h2>
+<p class="caption">Approximate scale for 3-pair difficulty. All cards face-up here for inspection.</p>
+<div class="hex-grid">
+  <svg viewBox="0 0 300 300" width="300" height="300">
+    <!-- Row 1: 2 hexes -->
+    <g transform="translate(85, 50)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="01_classic.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <g transform="translate(215, 50)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="03_tentacle.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <!-- Row 2: 3 hexes, offset -->
+    <g transform="translate(20, 150)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="05_horned.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <g transform="translate(150, 150)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="01_classic.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <g transform="translate(280, 150)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="03_tentacle.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <!-- Row 3: 2 hexes -->
+    <g transform="translate(85, 250)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="05_horned.svg" x="-32" y="-32" width="64" height="64"/></g>
+    <g transform="translate(215, 250)"><polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="#222" stroke="#555" stroke-width="2"/><image href="06_ufo.svg" x="-32" y="-32" width="64" height="64"/></g>
+  </svg>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Blob body -->
+  <path d="M 50 100 Q 50 40 100 40 Q 150 40 150 100 Q 155 160 130 175 Q 115 180 100 175 Q 85 180 70 175 Q 45 160 50 100 Z"
+        fill="#B47BD9" stroke="#1a1a1a" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Little feet bumps -->
+  <ellipse cx="75" cy="178" rx="8" ry="5" fill="#8E5DB0" stroke="#1a1a1a" stroke-width="4"/>
+  <ellipse cx="125" cy="178" rx="8" ry="5" fill="#8E5DB0" stroke="#1a1a1a" stroke-width="4"/>
+  <!-- Big single eye -->
+  <circle cx="100" cy="95" r="35" fill="#ffffff" stroke="#1a1a1a" stroke-width="6"/>
+  <circle cx="100" cy="95" r="20" fill="#1a1a1a"/>
+  <circle cx="108" cy="88" r="6" fill="#ffffff"/>
+  <!-- Mouth - wavy smile -->
+  <path d="M 80 145 Q 90 155 100 150 Q 110 155 120 145" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+  <!-- Antenna -->
+  <line x1="100" y1="40" x2="100" y2="20" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="100" cy="15" r="8" fill="#FFD93D" stroke="#1a1a1a" stroke-width="5"/>
+</svg>

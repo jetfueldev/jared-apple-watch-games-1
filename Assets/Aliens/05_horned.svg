@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Body - tall and slim -->
+  <path d="M 80 95 L 75 175 Q 75 185 85 185 L 115 185 Q 125 185 125 175 L 120 95 Z"
+        fill="#FF8C42" stroke="#1a1a1a" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Arms - long and skinny -->
+  <path d="M 82 100 Q 60 130 55 165" fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 82 100 Q 60 130 55 165" fill="none" stroke="#FF8C42" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="55" cy="167" r="6" fill="#FF8C42" stroke="#1a1a1a" stroke-width="4"/>
+  <path d="M 118 100 Q 140 130 145 165" fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 118 100 Q 140 130 145 165" fill="none" stroke="#FF8C42" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="145" cy="167" r="6" fill="#FF8C42" stroke="#1a1a1a" stroke-width="4"/>
+  <!-- Belly stripe -->
+  <path d="M 90 105 L 88 175 L 112 175 L 110 105 Z" fill="#FFC09F"/>
+  <!-- Head - oval, taller than wide -->
+  <ellipse cx="100" cy="65" rx="40" ry="48" fill="#FF8C42" stroke="#1a1a1a" stroke-width="6"/>
+  <!-- Horns -->
+  <path d="M 72 35 L 65 15 L 80 25 Z" fill="#FFD93D" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M 128 35 L 135 15 L 120 25 Z" fill="#FFD93D" stroke="#1a1a1a" stroke-width="5" stroke-linejoin="round"/>
+  <!-- Eyes - narrow and angry -->
+  <ellipse cx="85" cy="65" rx="10" ry="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="4"/>
+  <circle cx="85" cy="65" r="4" fill="#1a1a1a"/>
+  <ellipse cx="115" cy="65" rx="10" ry="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="4"/>
+  <circle cx="115" cy="65" r="4" fill="#1a1a1a"/>
+  <!-- Sharp grin -->
+  <path d="M 80 88 L 100 95 L 120 88" fill="none" stroke="#1a1a1a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 88 91 L 92 96 L 96 91 L 100 96 L 104 91 L 108 96 L 112 91" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Beam of light -->
+  <path d="M 70 130 L 50 195 L 150 195 L 130 130 Z" fill="#FFD93D" opacity="0.4" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"/>
+  <!-- Saucer bottom disc -->
+  <ellipse cx="100" cy="115" rx="75" ry="22" fill="#7A8B99" stroke="#1a1a1a" stroke-width="6"/>
+  <!-- Lights along the rim -->
+  <circle cx="50" cy="118" r="6" fill="#FF6B6B" stroke="#1a1a1a" stroke-width="3"/>
+  <circle cx="75" cy="125" r="6" fill="#FFD93D" stroke="#1a1a1a" stroke-width="3"/>
+  <circle cx="100" cy="128" r="6" fill="#7BC96F" stroke="#1a1a1a" stroke-width="3"/>
+  <circle cx="125" cy="125" r="6" fill="#FFD93D" stroke="#1a1a1a" stroke-width="3"/>
+  <circle cx="150" cy="118" r="6" fill="#FF6B6B" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- Dome top -->
+  <path d="M 65 110 Q 70 55 100 55 Q 130 55 135 110 Z" fill="#C8E8FF" stroke="#1a1a1a" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Dome highlight -->
+  <path d="M 75 95 Q 78 70 95 65" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <!-- Little alien silhouette inside dome -->
+  <ellipse cx="100" cy="90" rx="12" ry="14" fill="#7BC96F" stroke="#1a1a1a" stroke-width="4"/>
+  <ellipse cx="100" cy="103" rx="8" ry="6" fill="#7BC96F" stroke="#1a1a1a" stroke-width="4"/>
+  <ellipse cx="96" cy="88" rx="2" ry="3" fill="#1a1a1a"/>
+  <ellipse cx="104" cy="88" rx="2" ry="3" fill="#1a1a1a"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Body -->
+  <path d="M 75 130 Q 70 165 80 185 L 120 185 Q 130 165 125 130 Z"
+        fill="#7BC96F" stroke="#1a1a1a" stroke-width="6" stroke-linejoin="round"/>
+  <!-- Arms -->
+  <path d="M 75 135 Q 55 150 50 175" fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 75 135 Q 55 150 50 175" fill="none" stroke="#7BC96F" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 125 135 Q 145 150 150 175" fill="none" stroke="#1a1a1a" stroke-width="6" stroke-linecap="round"/>
+  <path d="M 125 135 Q 145 150 150 175" fill="none" stroke="#7BC96F" stroke-width="4" stroke-linecap="round"/>
+  <!-- Head -->
+  <ellipse cx="100" cy="85" rx="55" ry="65" fill="#7BC96F" stroke="#1a1a1a" stroke-width="6"/>
+  <!-- Eyes - big almond shaped -->
+  <ellipse cx="80" cy="90" rx="14" ry="22" fill="#1a1a1a" transform="rotate(-15 80 90)"/>
+  <ellipse cx="120" cy="90" rx="14" ry="22" fill="#1a1a1a" transform="rotate(15 120 90)"/>
+  <!-- Eye highlights -->
+  <ellipse cx="76" cy="82" rx="4" ry="6" fill="#ffffff" transform="rotate(-15 76 82)"/>
+  <ellipse cx="124" cy="82" rx="4" ry="6" fill="#ffffff" transform="rotate(15 124 82)"/>
+  <!-- Tiny mouth -->
+  <path d="M 92 130 Q 100 135 108 130" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
+</svg>
