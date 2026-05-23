@@ -58,53 +58,12 @@ private struct GameBoardView: View {
         }
     }
 
-    @State private var panX: CGFloat = 0
-    @State private var panY: CGFloat = 0
-    @State private var dragStartPanX: CGFloat = 0
-    @State private var dragStartPanY: CGFloat = 0
-    @State private var zoomLevel: CGFloat = 1.0
-    @State private var showIndicators: Bool = false
-    @State private var indicatorTimer: Timer?
-
-    private var needsHoneycomb: Bool {
-        gridSize.rows > GridSizes.viewportRows || gridSize.cols > GridSizes.viewportCols
-    }
-
-    private var minZoom: CGFloat {
-        guard needsHoneycomb else { return 1.0 }
-        let zoomForRows = CGFloat(GridSizes.viewportRows) / CGFloat(gridSize.rows)
-        let zoomForCols = CGFloat(GridSizes.viewportCols) / CGFloat(gridSize.cols)
-        return min(zoomForRows, zoomForCols)
-    }
-
     var body: some View {
         GeometryReader { geo in
             let spacing: CGFloat = 3
             let barHeight: CGFloat = 2
-            let viewportW = geo.size.width
-            let viewportH = geo.size.height - barHeight - 2
-
-            let sizingCols = needsHoneycomb ? GridSizes.viewportCols : gridSize.cols
-            let sizingRows = needsHoneycomb ? GridSizes.viewportRows : gridSize.rows
-            let baseCardW = (viewportW - spacing * CGFloat(sizingCols - 1)) / CGFloat(sizingCols)
-            let baseCardH = (viewportH - spacing * CGFloat(sizingRows - 1)) / CGFloat(sizingRows)
-            let baseCardSize = min(baseCardW, baseCardH)
-            let cellSpacing = baseCardSize + spacing
-
-            let gridCenterX = CGFloat(gridSize.cols - 1) / 2.0
-            let gridCenterY = CGFloat(gridSize.rows - 1) / 2.0
-
-            let gridHalfW = gridCenterX * cellSpacing * zoomLevel
-            let gridHalfH = gridCenterY * cellSpacing * zoomLevel
-            let maxPanX = max(0, gridHalfW - viewportW / 2 + baseCardSize * zoomLevel / 2)
-            let maxPanY = max(0, gridHalfH - viewportH / 2 + baseCardSize * zoomLevel / 2)
-
-            let clampedPanX = min(max(panX, -maxPanX), maxPanX)
-            let clampedPanY = min(max(panY, -maxPanY), maxPanY)
-
-            let panNormX: CGFloat = maxPanX > 0 ? (clampedPanX + maxPanX) / (2 * maxPanX) : 0.5
-            let panNormY: CGFloat = maxPanY > 0 ? (clampedPanY + maxPanY) / (2 * maxPanY) : 0.5
-            let zoomFraction: CGFloat = needsHoneycomb ? (1.0 - zoomLevel) / (1.0 - minZoom) : 0
+            let cols = 4
+            let cardSize = (geo.size.width - spacing * CGFloat(cols - 1)) / CGFloat(cols)
 
             let matchedPairs = state.cards.filter { $0.isMatched }.count / 2
             let matchProgress = gridSize.pairs > 0 ? CGFloat(matchedPairs) / CGFloat(gridSize.pairs) : 0
@@ -120,90 +79,16 @@ private struct GameBoardView: View {
                 }
                 .frame(height: barHeight)
 
-                ZStack {
-                    ForEach(0..<state.cards.count, id: \.self) { index in
-                        let row = index / gridSize.cols
-                        let col = index % gridSize.cols
-
-                        let isLastRow = row == gridSize.rows - 1
-                        let lastRowOffset: CGFloat = isLastRow && gridSize.lastRowCount < gridSize.cols
-                            ? CGFloat(gridSize.cols - gridSize.lastRowCount) * cellSpacing * zoomLevel / 2
-                            : 0
-
-                        let worldX = (CGFloat(col) - gridCenterX) * cellSpacing * zoomLevel + lastRowOffset
-                        let worldY = (CGFloat(row) - gridCenterY) * cellSpacing * zoomLevel
-
-                        let screenX = worldX + clampedPanX
-                        let screenY = worldY + clampedPanY
-
-                        let inBounds = abs(screenX) < viewportW && abs(screenY) < viewportH
-
-                        if inBounds {
-                            let nx = screenX / (viewportW / 2)
-                            let ny = screenY / (viewportH / 2)
-                            let dist = nx * nx + ny * ny
-                            let scale = needsHoneycomb ? max(0, 1.0 - dist * 0.5) : 1.0
-                            let cardSize = baseCardSize * zoomLevel * scale
-                            let canTap = cardSize >= baseCardSize * 0.5
-
-                            if scale > 0.05 {
-                                CardView(card: state.cards[index], cardSize: cardSize)
-                                    .opacity(Double(min(1, scale * 2)))
-                                    .position(
-                                        x: viewportW / 2 + screenX,
-                                        y: viewportH / 2 + screenY
-                                    )
-                                    .onTapGesture {
-                                        if canTap {
-                                            state.tapCard(at: index)
-                                        }
-                                    }
-                            }
+                ScrollView {
+                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(cardSize), spacing: spacing), count: cols), spacing: spacing) {
+                        ForEach(0..<state.cards.count, id: \.self) { index in
+                            CardView(card: state.cards[index], cardSize: cardSize)
+                                .onTapGesture {
+                                    state.tapCard(at: index)
+                                }
                         }
                     }
-
-                    if needsHoneycomb {
-                        ScrollPositionIndicators(
-                            panNormX: panNormX,
-                            panNormY: panNormY,
-                            zoomFraction: zoomFraction,
-                            viewportSize: CGSize(width: viewportW, height: viewportH)
-                        )
-                        .opacity(showIndicators ? 1 : 0)
-                        .animation(.easeInOut(duration: 0.3), value: showIndicators)
-                    }
                 }
-                .frame(width: viewportW, height: viewportH)
-                .drawingGroup()
-                .gesture(needsHoneycomb ? DragGesture(minimumDistance: 5)
-                    .onChanged { value in
-                        panX = dragStartPanX + value.translation.width
-                        panY = dragStartPanY + value.translation.height
-                        flashIndicators()
-                    }
-                    .onEnded { value in
-                        panX = min(max(panX, -maxPanX), maxPanX)
-                        panY = min(max(panY, -maxPanY), maxPanY)
-                        dragStartPanX = panX
-                        dragStartPanY = panY
-                    } : nil)
-            }
-            .focusable(needsHoneycomb)
-            .digitalCrownRotation(
-                $zoomLevel,
-                from: Double(minZoom),
-                through: 1.0,
-                sensitivity: .low,
-                isContinuous: false,
-                isHapticFeedbackEnabled: true
-            )
-            .digitalCrownAccessory(.hidden)
-            .onChange(of: zoomLevel) { _, _ in
-                panX = min(max(panX, -maxPanX), maxPanX)
-                panY = min(max(panY, -maxPanY), maxPanY)
-                dragStartPanX = panX
-                dragStartPanY = panY
-                flashIndicators()
             }
         }
         .edgesIgnoringSafeArea(.bottom)
@@ -238,81 +123,6 @@ private struct GameBoardView: View {
             } else {
                 ScoreStore.shared.saveGameSnapshot(state.snapshot())
             }
-            if needsHoneycomb {
-                flashIndicators()
-            }
         }
-    }
-
-    private func flashIndicators() {
-        showIndicators = true
-        indicatorTimer?.invalidate()
-        indicatorTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { _ in
-            showIndicators = false
-        }
-    }
-}
-
-private struct ScrollPositionIndicators: View {
-    let panNormX: CGFloat
-    let panNormY: CGFloat
-    let zoomFraction: CGFloat
-    let viewportSize: CGSize
-
-    private let maxThickness: CGFloat = 2.5
-
-    private var indicatorLength: CGFloat {
-        let base: CGFloat = 0.12
-        let zoomed: CGFloat = 1.0
-        return base + (zoomed - base) * zoomFraction
-    }
-
-    private var thickness: CGFloat {
-        let minT: CGFloat = 1.5
-        return minT + (maxThickness - minT) * zoomFraction
-    }
-
-    private var opacity: CGFloat {
-        0.20 + 0.15 * zoomFraction
-    }
-
-    var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                Spacer()
-                horizontalIndicator(position: panNormX)
-            }
-            HStack(spacing: 0) {
-                Spacer()
-                verticalIndicator(position: panNormY)
-            }
-        }
-        .allowsHitTesting(false)
-    }
-
-    private func horizontalIndicator(position: CGFloat) -> some View {
-        let len = indicatorLength * viewportSize.width
-        let travel = viewportSize.width - len
-        let xOffset = position * travel
-
-        return Rectangle()
-            .fill(.white.opacity(opacity))
-            .frame(width: len, height: thickness)
-            .cornerRadius(thickness / 2)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .offset(x: xOffset)
-    }
-
-    private func verticalIndicator(position: CGFloat) -> some View {
-        let len = indicatorLength * viewportSize.height
-        let travel = viewportSize.height - len
-        let yOffset = position * travel
-
-        return Rectangle()
-            .fill(.white.opacity(opacity))
-            .frame(width: thickness, height: len)
-            .cornerRadius(thickness / 2)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .offset(y: yOffset)
     }
 }
