@@ -59,6 +59,21 @@ struct ThemePickerView: View {
                         .buttonStyle(.plain)
                     }
                 }
+
+                NavigationLink(destination: MemorySimulationView()) {
+                    HStack {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.yellow.opacity(0.7))
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(.white.opacity(0.06))
+                    .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 10)
         }

@@ -23,7 +23,7 @@ struct MenuView: View {
                     Capsule()
                         .fill(.white.opacity(0.08))
                     Capsule()
-                        .fill(Color(red: 0.3, green: 0.9, blue: 0.4).opacity(0.4))
+                        .fill(.blue.opacity(0.4))
                         .frame(width: max(4, progress * 140))
                 }
                 .frame(width: 140, height: 3)

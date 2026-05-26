@@ -73,23 +73,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let autoPlayShotSpeed: CGFloat = 500
 
     private func playNextAutoLevel() {
-        // Find the next solvable level. Skip unsolvable ones entirely.
-        var found: (level: Level, result: SimulationResult)? = nil
-        while autoPlayCurrentLevel <= LevelGenerator.totalLevels {
-            let level = LevelGenerator.generate(number: autoPlayCurrentLevel)
-            let result = LevelSimulator.simulate(level: level)
-            if result.solvable, result.path.count >= 2 {
-                found = (level, result)
-                break
-            }
-            autoPlayFailCount += 1
-            autoPlayCurrentLevel += 1
-        }
-
-        guard let next = found else {
+        guard autoPlayCurrentLevel <= LevelGenerator.totalLevels else {
             NotificationCenter.default.post(name: .ricochetSimulationComplete, object: nil)
             return
         }
+
+        let level = LevelGenerator.generate(number: autoPlayCurrentLevel)
+        let result = LevelSimulator.simulate(level: level)
 
         levelNumber = autoPlayCurrentLevel
         loadLevel(autoPlayCurrentLevel)
@@ -101,17 +91,68 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ]
         NotificationCenter.default.post(name: .ricochetSimulationProgress, object: nil, userInfo: info)
 
-        aimNode.isHidden = false
-        countdownArc.isHidden = true
+        if result.solvable, result.path.count >= 2 {
+            aimNode.isHidden = false
+            countdownArc.isHidden = true
 
-        let angle = next.result.solutionAngle ?? 0
-        let path = next.result.path
+            let angle = result.solutionAngle ?? 0
+            let path = result.path
 
-        run(.sequence([
-            .wait(forDuration: 0.15),
-            .run { [weak self] in self?.animateAimTo(angle: Double(angle), duration: 0.2) },
-            .wait(forDuration: 0.25),
-            .run { [weak self] in self?.playPath(path) }
+            run(.sequence([
+                .wait(forDuration: 0.15),
+                .run { [weak self] in self?.animateAimTo(angle: Double(angle), duration: 0.2) },
+                .wait(forDuration: 0.25),
+                .run { [weak self] in self?.playPath(path) }
+            ]))
+        } else {
+            aimNode.isHidden = true
+            countdownArc.isHidden = true
+            autoPlayFailCount += 1
+            showUnsolvableIndicator()
+
+            run(.sequence([
+                .wait(forDuration: 0.8),
+                .run { [weak self] in
+                    guard let self else { return }
+                    let failInfo: [String: Any] = [
+                        "level": self.autoPlayCurrentLevel,
+                        "hit": false,
+                        "pass": self.autoPlayPassCount,
+                        "fail": self.autoPlayFailCount
+                    ]
+                    NotificationCenter.default.post(name: .ricochetSimulationProgress, object: nil, userInfo: failInfo)
+                    self.autoPlayCurrentLevel += 1
+                    self.playNextAutoLevel()
+                }
+            ]))
+        }
+    }
+
+    private func showUnsolvableIndicator() {
+        let sz: CGFloat = 16
+        let xPath = CGMutablePath()
+        xPath.move(to: CGPoint(x: -sz / 2, y: -sz / 2))
+        xPath.addLine(to: CGPoint(x: sz / 2, y: sz / 2))
+        xPath.move(to: CGPoint(x: sz / 2, y: -sz / 2))
+        xPath.addLine(to: CGPoint(x: -sz / 2, y: sz / 2))
+
+        let xMark = SKShapeNode(path: xPath)
+        xMark.strokeColor = SKColor(red: 1, green: 0.3, blue: 0.3, alpha: 0.9)
+        xMark.lineWidth = 3
+        xMark.glowWidth = 2
+        xMark.position = targetNode.position
+        xMark.zPosition = 10
+        xMark.setScale(0.3)
+        addChild(xMark)
+
+        xMark.run(.sequence([
+            .scale(to: 1.0, duration: 0.2),
+            .wait(forDuration: 0.4),
+            .group([
+                .fadeOut(withDuration: 0.15),
+                .scale(to: 0.5, duration: 0.15)
+            ]),
+            .removeFromParent()
         ]))
     }
 
@@ -380,14 +421,34 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         path.addLine(to: obstacle.to)
 
         let line = SKShapeNode(path: path)
+        let zone = (levelNumber - 1) / 10
+
         if isAbsorb {
-            line.strokeColor = SKColor(red: 0.6, green: 0.15, blue: 0.7, alpha: 0.8)
-            line.glowWidth = 2
+            let absorbColors: [(r: CGFloat, g: CGFloat, b: CGFloat)] = [
+                (0.6, 0.15, 0.7),   // Earth
+                (0.7, 0.1, 0.5),    // Moon
+                (0.9, 0.15, 0.2),   // Star
+                (0.85, 0.1, 0.4),   // Planet
+                (1.0, 0.2, 0.1),    // Sun
+            ]
+            let c = absorbColors[min(zone, absorbColors.count - 1)]
+            line.strokeColor = SKColor(red: c.r, green: c.g, blue: c.b, alpha: 0.85)
+            line.glowWidth = CGFloat(min(zone, 4)) + 2
+            line.lineWidth = zone >= 3 ? 3 : 2
         } else {
-            line.strokeColor = SKColor(red: 0.6, green: 0.6, blue: 0.7, alpha: 0.7)
-            line.glowWidth = 1
+            let wallColors: [(r: CGFloat, g: CGFloat, b: CGFloat)] = [
+                (0.3, 0.75, 0.85),  // Earth — cool cyan
+                (0.55, 0.6, 0.85),  // Moon — soft blue
+                (0.85, 0.75, 0.3),  // Star — warm gold
+                (0.7, 0.4, 0.85),   // Planet — purple
+                (0.95, 0.5, 0.2),   // Sun — orange
+            ]
+            let c = wallColors[min(zone, wallColors.count - 1)]
+            line.strokeColor = SKColor(red: c.r, green: c.g, blue: c.b, alpha: 0.8)
+            line.glowWidth = CGFloat(min(zone, 3)) + 1
+            line.lineWidth = 2
         }
-        line.lineWidth = 2
+
         container.addChild(line)
 
         return container

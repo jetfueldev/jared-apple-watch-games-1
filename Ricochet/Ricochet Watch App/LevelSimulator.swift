@@ -40,18 +40,31 @@ enum LevelSimulator {
         let maxAngle: CGFloat = 2.8
         let step = (maxAngle - minAngle) / CGFloat(angleSteps)
 
+        var best: (angle: CGFloat, bounces: Int, path: [CGPoint])? = nil
+
         for i in 0...angleSteps {
             let angle = minAngle + step * CGFloat(i)
             let result = castRay(angle: angle, level: level)
             if result.hit {
-                return SimulationResult(
-                    level: level.number,
-                    solvable: true,
-                    solutionAngle: angle,
-                    bounces: result.bounces,
-                    path: result.path
-                )
+                if let current = best {
+                    if result.bounces < current.bounces ||
+                       (result.bounces == current.bounces && pathLength(result.path) < pathLength(current.path)) {
+                        best = (angle, result.bounces, result.path)
+                    }
+                } else {
+                    best = (angle, result.bounces, result.path)
+                }
             }
+        }
+
+        if let best {
+            return SimulationResult(
+                level: level.number,
+                solvable: true,
+                solutionAngle: best.angle,
+                bounces: best.bounces,
+                path: best.path
+            )
         }
 
         return SimulationResult(
@@ -61,6 +74,14 @@ enum LevelSimulator {
             bounces: 0,
             path: []
         )
+    }
+
+    private static func pathLength(_ path: [CGPoint]) -> CGFloat {
+        var total: CGFloat = 0
+        for i in 1..<path.count {
+            total += hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y)
+        }
+        return total
     }
 
     private struct RayResult {

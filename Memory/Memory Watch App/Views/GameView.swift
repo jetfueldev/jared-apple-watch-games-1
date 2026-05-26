@@ -62,7 +62,7 @@ private struct GameBoardView: View {
         GeometryReader { geo in
             let spacing: CGFloat = 3
             let barHeight: CGFloat = 2
-            let cols = 4
+            let cols = gridSize.cols
             let cardSize = (geo.size.width - spacing * CGFloat(cols - 1)) / CGFloat(cols)
 
             let matchedPairs = state.cards.filter { $0.isMatched }.count / 2
@@ -73,7 +73,7 @@ private struct GameBoardView: View {
                     Capsule()
                         .fill(.white.opacity(0.06))
                     Capsule()
-                        .fill(.white.opacity(0.25))
+                        .fill(.blue.opacity(0.4))
                         .frame(width: geo.size.width * matchProgress)
                         .animation(.easeInOut(duration: 0.5), value: matchProgress)
                 }
