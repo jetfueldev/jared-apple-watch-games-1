@@ -7,4 +7,7 @@
    <FileRef
       location = "group:Ricochet/Ricochet.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:Echo/Echo.xcodeproj">
+   </FileRef>
 </Workspace>
