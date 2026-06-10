@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchGameKit
 
 struct MemorySimulationView: View {
     @State private var testIndex = 0
@@ -85,16 +86,7 @@ struct MemorySimulationView: View {
                 .onTapGesture { dismiss() }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
-                }
-            }
-        }
+        .watchBackButton()
     }
 }
 

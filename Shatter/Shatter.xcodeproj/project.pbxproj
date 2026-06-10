@@ -7,27 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B95A73772FB4016E00A7BE54 /* Memory Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B95A73762FB4016E00A7BE54 /* Memory Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F1A2B30D2FC1234500C1D2E3 /* Shatter Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = F1A2B30C2FC1234500C1D2E3 /* Shatter Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		B95A73782FB4016E00A7BE54 /* PBXContainerItemProxy */ = {
+		F1A2B30E2FC1234500C1D2E3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = B95A736A2FB4016D00A7BE54 /* Project object */;
+			containerPortal = F1A2B3022FC1234500C1D2E3 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = B95A73752FB4016E00A7BE54;
-			remoteInfo = "Memory Watch App";
+			remoteGlobalIDString = F1A2B30B2FC1234500C1D2E3;
+			remoteInfo = "Shatter Watch App";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		B95A73862FB4017000A7BE54 /* Embed Watch Content */ = {
+		F1A2B3162FC1234500C1D2E3 /* Embed Watch Content */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				B95A73772FB4016E00A7BE54 /* Memory Watch App.app in Embed Watch Content */,
+				F1A2B30D2FC1234500C1D2E3 /* Shatter Watch App.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -35,20 +35,20 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		B95A73702FB4016E00A7BE54 /* Memory.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Memory.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B95A73762FB4016E00A7BE54 /* Memory Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Memory Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1A2B3062FC1234500C1D2E3 /* Shatter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shatter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1A2B30C2FC1234500C1D2E3 /* Shatter Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Shatter Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		B95A737A2FB4016E00A7BE54 /* Memory Watch App */ = {
+		F1A2B3102FC1234500C1D2E3 /* Shatter Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "Memory Watch App";
+			path = "Shatter Watch App";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		B95A73732FB4016E00A7BE54 /* Frameworks */ = {
+		F1A2B3092FC1234500C1D2E3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -58,19 +58,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		B95A73692FB4016D00A7BE54 = {
+		F1A2B3012FC1234500C1D2E3 = {
 			isa = PBXGroup;
 			children = (
-				B95A737A2FB4016E00A7BE54 /* Memory Watch App */,
-				B95A73712FB4016E00A7BE54 /* Products */,
+				F1A2B3102FC1234500C1D2E3 /* Shatter Watch App */,
+				F1A2B3072FC1234500C1D2E3 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		B95A73712FB4016E00A7BE54 /* Products */ = {
+		F1A2B3072FC1234500C1D2E3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B95A73702FB4016E00A7BE54 /* Memory.app */,
-				B95A73762FB4016E00A7BE54 /* Memory Watch App.app */,
+				F1A2B3062FC1234500C1D2E3 /* Shatter.app */,
+				F1A2B30C2FC1234500C1D2E3 /* Shatter Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,98 +78,98 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B95A736F2FB4016E00A7BE54 /* Memory */ = {
+		F1A2B3052FC1234500C1D2E3 /* Shatter */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B95A73872FB4017000A7BE54 /* Build configuration list for PBXNativeTarget "Memory" */;
+			buildConfigurationList = F1A2B3172FC1234500C1D2E3 /* Build configuration list for PBXNativeTarget "Shatter" */;
 			buildPhases = (
-				B95A736E2FB4016E00A7BE54 /* Resources */,
-				B95A73862FB4017000A7BE54 /* Embed Watch Content */,
+				F1A2B3042FC1234500C1D2E3 /* Resources */,
+				F1A2B3162FC1234500C1D2E3 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				B95A73792FB4016E00A7BE54 /* PBXTargetDependency */,
+				F1A2B30F2FC1234500C1D2E3 /* PBXTargetDependency */,
 			);
-			name = Memory;
+			name = Shatter;
 			packageProductDependencies = (
 			);
-			productName = Memory;
-			productReference = B95A73702FB4016E00A7BE54 /* Memory.app */;
+			productName = Shatter;
+			productReference = F1A2B3062FC1234500C1D2E3 /* Shatter.app */;
 			productType = "com.apple.product-type.application.watchapp2-container";
 		};
-		B95A73752FB4016E00A7BE54 /* Memory Watch App */ = {
+		F1A2B30B2FC1234500C1D2E3 /* Shatter Watch App */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B95A73832FB4017000A7BE54 /* Build configuration list for PBXNativeTarget "Memory Watch App" */;
+			buildConfigurationList = F1A2B3132FC1234500C1D2E3 /* Build configuration list for PBXNativeTarget "Shatter Watch App" */;
 			buildPhases = (
-				B95A73722FB4016E00A7BE54 /* Sources */,
-				B95A73732FB4016E00A7BE54 /* Frameworks */,
-				B95A73742FB4016E00A7BE54 /* Resources */,
+				F1A2B3082FC1234500C1D2E3 /* Sources */,
+				F1A2B3092FC1234500C1D2E3 /* Frameworks */,
+				F1A2B30A2FC1234500C1D2E3 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				B95A737A2FB4016E00A7BE54 /* Memory Watch App */,
+				F1A2B3102FC1234500C1D2E3 /* Shatter Watch App */,
 			);
-			name = "Memory Watch App";
+			name = "Shatter Watch App";
 			packageProductDependencies = (
-				B95A73A12FB4016E00A7BE54 /* WatchGameKit */,
+				F1A2B3A12FC1234500C1D2E3 /* WatchGameKit */,
 			);
-			productName = "Memory Watch App";
-			productReference = B95A73762FB4016E00A7BE54 /* Memory Watch App.app */;
+			productName = "Shatter Watch App";
+			productReference = F1A2B30C2FC1234500C1D2E3 /* Shatter Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		B95A736A2FB4016D00A7BE54 /* Project object */ = {
+		F1A2B3022FC1234500C1D2E3 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
-					B95A736F2FB4016E00A7BE54 = {
+					F1A2B3052FC1234500C1D2E3 = {
 						CreatedOnToolsVersion = 26.5;
 					};
-					B95A73752FB4016E00A7BE54 = {
+					F1A2B30B2FC1234500C1D2E3 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
 			};
-			buildConfigurationList = B95A736D2FB4016E00A7BE54 /* Build configuration list for PBXProject "Memory" */;
+			buildConfigurationList = F1A2B3032FC1234500C1D2E3 /* Build configuration list for PBXProject "Shatter" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = B95A73692FB4016D00A7BE54;
+			mainGroup = F1A2B3012FC1234500C1D2E3;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = B95A73712FB4016E00A7BE54 /* Products */;
 			packageReferences = (
-				B95A73A02FB4016E00A7BE54 /* XCLocalSwiftPackageReference "WatchGameKit" */,
+				F1A2B3A02FC1234500C1D2E3 /* XCLocalSwiftPackageReference "WatchGameKit" */,
 			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F1A2B3072FC1234500C1D2E3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B95A736F2FB4016E00A7BE54 /* Memory */,
-				B95A73752FB4016E00A7BE54 /* Memory Watch App */,
+				F1A2B3052FC1234500C1D2E3 /* Shatter */,
+				F1A2B30B2FC1234500C1D2E3 /* Shatter Watch App */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		B95A736E2FB4016E00A7BE54 /* Resources */ = {
+		F1A2B3042FC1234500C1D2E3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B95A73742FB4016E00A7BE54 /* Resources */ = {
+		F1A2B30A2FC1234500C1D2E3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -179,7 +179,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		B95A73722FB4016E00A7BE54 /* Sources */ = {
+		F1A2B3082FC1234500C1D2E3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -189,15 +189,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		B95A73792FB4016E00A7BE54 /* PBXTargetDependency */ = {
+		F1A2B30F2FC1234500C1D2E3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B95A73752FB4016E00A7BE54 /* Memory Watch App */;
-			targetProxy = B95A73782FB4016E00A7BE54 /* PBXContainerItemProxy */;
+			target = F1A2B30B2FC1234500C1D2E3 /* Shatter Watch App */;
+			targetProxy = F1A2B30E2FC1234500C1D2E3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		B95A73812FB4017000A7BE54 /* Debug */ = {
+		F1A2B3112FC1234500C1D2E3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -259,7 +259,7 @@
 			};
 			name = Debug;
 		};
-		B95A73822FB4017000A7BE54 /* Release */ = {
+		F1A2B3122FC1234500C1D2E3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -313,7 +313,7 @@
 			};
 			name = Release;
 		};
-		B95A73842FB4017000A7BE54 /* Debug */ = {
+		F1A2B3142FC1234500C1D2E3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -323,7 +323,7 @@
 				DEVELOPMENT_TEAM = 24THE6659Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Memory;
+				INFOPLIST_KEY_CFBundleDisplayName = Shatter;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -331,7 +331,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Memory.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Shatter.watchkitapp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -346,7 +346,7 @@
 			};
 			name = Debug;
 		};
-		B95A73852FB4017000A7BE54 /* Release */ = {
+		F1A2B3152FC1234500C1D2E3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -356,7 +356,7 @@
 				DEVELOPMENT_TEAM = 24THE6659Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Memory;
+				INFOPLIST_KEY_CFBundleDisplayName = Shatter;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKWatchOnly = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -364,7 +364,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Memory.watchkitapp";
+				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Shatter.watchkitapp";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -380,15 +380,15 @@
 			};
 			name = Release;
 		};
-		B95A73882FB4017000A7BE54 /* Debug */ = {
+		F1A2B3182FC1234500C1D2E3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24THE6659Q;
-				INFOPLIST_KEY_CFBundleDisplayName = Memory;
+				INFOPLIST_KEY_CFBundleDisplayName = Shatter;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Memory";
+				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Shatter";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -397,15 +397,15 @@
 			};
 			name = Debug;
 		};
-		B95A73892FB4017000A7BE54 /* Release */ = {
+		F1A2B3192FC1234500C1D2E3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24THE6659Q;
-				INFOPLIST_KEY_CFBundleDisplayName = Memory;
+				INFOPLIST_KEY_CFBundleDisplayName = Shatter;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Memory";
+				PRODUCT_BUNDLE_IDENTIFIER = "Jet-Fuel-Labs-LLC.Shatter";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -418,29 +418,29 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B95A736D2FB4016E00A7BE54 /* Build configuration list for PBXProject "Memory" */ = {
+		F1A2B3032FC1234500C1D2E3 /* Build configuration list for PBXProject "Shatter" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B95A73812FB4017000A7BE54 /* Debug */,
-				B95A73822FB4017000A7BE54 /* Release */,
+				F1A2B3112FC1234500C1D2E3 /* Debug */,
+				F1A2B3122FC1234500C1D2E3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B95A73832FB4017000A7BE54 /* Build configuration list for PBXNativeTarget "Memory Watch App" */ = {
+		F1A2B3132FC1234500C1D2E3 /* Build configuration list for PBXNativeTarget "Shatter Watch App" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B95A73842FB4017000A7BE54 /* Debug */,
-				B95A73852FB4017000A7BE54 /* Release */,
+				F1A2B3142FC1234500C1D2E3 /* Debug */,
+				F1A2B3152FC1234500C1D2E3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B95A73872FB4017000A7BE54 /* Build configuration list for PBXNativeTarget "Memory" */ = {
+		F1A2B3172FC1234500C1D2E3 /* Build configuration list for PBXNativeTarget "Shatter" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B95A73882FB4017000A7BE54 /* Debug */,
-				B95A73892FB4017000A7BE54 /* Release */,
+				F1A2B3182FC1234500C1D2E3 /* Debug */,
+				F1A2B3192FC1234500C1D2E3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -448,18 +448,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		B95A73A02FB4016E00A7BE54 /* XCLocalSwiftPackageReference "WatchGameKit" */ = {
+		F1A2B3A02FC1234500C1D2E3 /* XCLocalSwiftPackageReference "WatchGameKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../WatchGameKit;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		B95A73A12FB4016E00A7BE54 /* WatchGameKit */ = {
+		F1A2B3A12FC1234500C1D2E3 /* WatchGameKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WatchGameKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = B95A736A2FB4016D00A7BE54 /* Project object */;
+	rootObject = F1A2B3022FC1234500C1D2E3 /* Project object */;
 }

@@ -5,7 +5,7 @@ import WatchGameKit
 struct GameContainerView: View {
     let startLevel: Int
 
-    @State private var aimAngle: Double = 0.0
+    @State private var paddleX: Double = 0.5
     @State private var currentLevel: Int
     @State private var sceneID = UUID()
     @Environment(\.dismiss) private var dismiss
@@ -28,33 +28,31 @@ struct GameContainerView: View {
                 .allowsHitTesting(false)
         }
         .id(sceneID)
-        .onTapGesture {
-            scene.fire()
-        }
         .focusable()
         .digitalCrownRotation(
-            $aimAngle,
-            from: -8.4,
-            through: 8.4,
+            $paddleX,
+            from: 0.0,
+            through: 3.0,
             sensitivity: .low,
             isContinuous: false,
-            isHapticFeedbackEnabled: true
+            isHapticFeedbackEnabled: false
         )
         .digitalCrownAccessory(.hidden)
-        .onChange(of: aimAngle) { _, newValue in
-            scene.updateAim(angle: newValue / 3.0)
+        .scrollIndicators(.hidden)
+        .onChange(of: paddleX) { _, newValue in
+            scene.updatePaddlePosition(newValue)
         }
         .watchBackButton()
-        .onReceive(NotificationCenter.default.publisher(for: .ricochetLevelComplete)) { notification in
+        .onReceive(NotificationCenter.default.publisher(for: .shatterLevelComplete)) { notification in
             if let level = notification.object as? Int {
                 ProgressStore.completeLevel(level)
                 let next = level + 1
-                if next <= LevelGenerator.totalLevels {
+                if next <= LevelData.totalLevels {
                     currentLevel = next
-                    aimAngle = 0.0
                     let newScene = GameScene(size: CGSize(width: 200, height: 240))
                     newScene.scaleMode = .aspectFill
                     newScene.levelNumber = next
+                    newScene.updatePaddlePosition(paddleX)
                     scene = newScene
                     sceneID = UUID()
                 } else {

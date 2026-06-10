@@ -2,17 +2,17 @@ import SwiftUI
 import WatchGameKit
 
 struct MenuView: View {
-    @AppStorage("echo_currentStage") private var currentStage = 1
-    @AppStorage("echo_highestStage") private var highestStage = 1
+    @AppStorage("shatter_currentLevel") private var currentLevel = 1
+    @AppStorage("shatter_highestLevel") private var highestLevel = 1
 
-    private var hasProgress: Bool { currentStage > 1 }
+    private var hasProgress: Bool { currentLevel > 1 }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                LevelHeader(icon: "🔊", level: currentStage, totalLevels: StageData.totalStages)
+                LevelHeader(icon: "💥", level: currentLevel, totalLevels: LevelData.totalLevels)
 
-                NavigationLink(destination: GameView(stageNumber: currentStage)) {
+                NavigationLink(destination: GameContainerView(startLevel: currentLevel)) {
                     HStack {
                         Image(systemName: "play.fill")
                             .font(.system(size: 16))
@@ -26,7 +26,7 @@ struct MenuView: View {
                 .watchButton(Color(red: 0.3, green: 0.9, blue: 0.4).opacity(0.15))
 
                 if hasProgress {
-                    NavigationLink(destination: GameView(stageNumber: 1)) {
+                    NavigationLink(destination: GameContainerView(startLevel: 1)) {
                         HStack {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 14))

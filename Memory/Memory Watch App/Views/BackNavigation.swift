@@ -1,22 +1,12 @@
 import SwiftUI
+import WatchGameKit
 
 struct BackNavigationModifier: ViewModifier {
     @Environment(\.dismiss) private var dismiss
 
     func body(content: Content) -> some View {
         content
-            .navigationBarBackButtonHidden(true)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.35))
-                    }
-                }
-            }
+            .watchBackButton()
             .gesture(
                 DragGesture(minimumDistance: 20)
                     .onEnded { value in

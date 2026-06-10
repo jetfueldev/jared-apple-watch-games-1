@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchGameKit
 
 struct SettingsView: View {
     @AppStorage("ricochet_currentLevel") private var currentLevel = 1
@@ -18,10 +19,8 @@ struct SettingsView: View {
                         .foregroundStyle(.white.opacity(0.7))
                     Spacer()
                 }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 8)
-                .background(.white.opacity(0.06))
-                .cornerRadius(10)
+                .padding(.horizontal, 12)
+                .watchButton()
 
                 Button {
                     showResetConfirm = true
@@ -34,12 +33,9 @@ struct SettingsView: View {
                         Spacer()
                     }
                     .foregroundStyle(.red.opacity(0.7))
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 8)
-                    .background(.white.opacity(0.06))
-                    .cornerRadius(10)
+                    .padding(.horizontal, 12)
                 }
-                .buttonStyle(.plain)
+                .watchButton()
                 .confirmationDialog("", isPresented: $showResetConfirm) {
                     Button(role: .destructive) {
                         currentLevel = 1

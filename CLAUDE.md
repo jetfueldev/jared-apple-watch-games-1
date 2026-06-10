@@ -75,6 +75,10 @@ ThemePickerView (2x2 grid) → GameView (auto-starts at 2 pairs, auto-advances t
 
 Zen / meditative. The game should feel like a calming mental health moment, not a competitive challenge. Muted colors (white.opacity 0.08-0.12), no 3D card effects, silent mismatch haptic, ghost-like win stats, no Liquid Glass. Everything whisper-soft.
 
+## Transition timing
+
+State transitions must be slow enough for human comprehension. Don't rush phase changes — each distinct step (feedback → explanation → reset) needs at least 0.8–1.0s to land. Target ~3s for fail-to-restart, ~2.5s for win-to-next. If you watch a transition cold and can't follow what happened, it's too fast. Applies to all games.
+
 ## Current milestone
 
 **Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Zen redesign applied. SizePickerView removed. Current focus: polish, clock positioning, and playtesting.

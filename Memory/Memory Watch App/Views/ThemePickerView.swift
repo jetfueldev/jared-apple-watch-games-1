@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchGameKit
 
 struct ThemePickerView: View {
     var body: some View {
@@ -35,7 +36,6 @@ struct ThemePickerView: View {
                     }
                 }
 
-                // Test buttons — large grid (36-100 tiles)
                 let testSize: CGFloat = 44
                 LazyVGrid(columns: [
                     GridItem(.fixed(testSize), spacing: 6),
@@ -63,17 +63,13 @@ struct ThemePickerView: View {
                 NavigationLink(destination: MemorySimulationView()) {
                     HStack {
                         Image(systemName: "bolt.fill")
-                            .font(.system(size: 12))
+                            .font(.system(size: 14))
                             .foregroundStyle(.yellow.opacity(0.7))
                         Spacer()
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
                     .padding(.horizontal, 12)
-                    .background(.white.opacity(0.06))
-                    .cornerRadius(10)
                 }
-                .buttonStyle(.plain)
+                .watchButton()
             }
             .padding(.horizontal, 10)
         }

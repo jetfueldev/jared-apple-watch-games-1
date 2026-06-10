@@ -10,4 +10,10 @@
    <FileRef
       location = "group:Echo/Echo.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:Shatter/Shatter.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:WatchGameKit">
+   </FileRef>
 </Workspace>

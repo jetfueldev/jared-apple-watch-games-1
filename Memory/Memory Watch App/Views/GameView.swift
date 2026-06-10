@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchGameKit
 
 struct GameView: View {
     let theme: Theme
@@ -69,15 +70,8 @@ private struct GameBoardView: View {
             let matchProgress = gridSize.pairs > 0 ? CGFloat(matchedPairs) / CGFloat(gridSize.pairs) : 0
 
             VStack(spacing: 2) {
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.white.opacity(0.06))
-                    Capsule()
-                        .fill(.blue.opacity(0.4))
-                        .frame(width: geo.size.width * matchProgress)
-                        .animation(.easeInOut(duration: 0.5), value: matchProgress)
-                }
-                .frame(height: barHeight)
+                ProgressCapsule(progress: Double(matchProgress), width: geo.size.width, height: barHeight)
+                    .animation(.easeInOut(duration: 0.5), value: matchProgress)
 
                 ScrollView {
                     LazyVGrid(columns: Array(repeating: GridItem(.fixed(cardSize), spacing: spacing), count: cols), spacing: spacing) {
@@ -92,16 +86,7 @@ private struct GameBoardView: View {
             }
         }
         .edgesIgnoringSafeArea(.bottom)
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
-                }
-            }
-        }
+        .watchBackButton()
         .fullScreenCover(isPresented: $state.isComplete, onDismiss: onWinDismissed) {
             WinView(state: state, theme: theme, gridSize: gridSize)
         }

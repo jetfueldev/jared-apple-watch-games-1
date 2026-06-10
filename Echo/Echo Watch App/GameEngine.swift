@@ -127,8 +127,10 @@ class GameEngine: ObservableObject {
             phase = .roundSuccess
             Haptics.playSuccess()
             currentRound += 1
-            extendSequence()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                self?.extendSequence()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
                 self?.startPlayback()
             }
         }
@@ -138,14 +140,14 @@ class GameEngine: ObservableObject {
         phase = .roundFail
         Haptics.playFailure()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.litPad = correctColor
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
             guard let self else { return }
             self.litPad = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 self.restartStage()
             }
         }

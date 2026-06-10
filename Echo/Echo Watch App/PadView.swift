@@ -7,16 +7,29 @@ struct PadView: View {
     let onTap: () -> Void
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(isLit ? padColor.litColor : padColor.color)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(.white.opacity(isLit ? 0.3 : 0.06), lineWidth: 1)
-            )
-            .animation(.easeInOut(duration: 0.15), value: isLit)
-            .onTapGesture {
-                guard isEnabled else { return }
-                onTap()
-            }
+        ZStack {
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isLit ? padColor.litColor : padColor.glassColor)
+
+            RoundedRectangle(cornerRadius: 14)
+                .fill(
+                    LinearGradient(
+                        colors: [.white.opacity(isLit ? 0.2 : 0.08), .clear],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(.white.opacity(isLit ? 0.4 : 0.12), lineWidth: 1)
+        }
+        .animation(.easeInOut(duration: 0.15), value: isLit)
+        .onTapGesture {
+            guard isEnabled else { return }
+            onTap()
+        }
     }
 }

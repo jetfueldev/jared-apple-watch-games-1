@@ -1,5 +1,6 @@
 import SwiftUI
 import SpriteKit
+import WatchGameKit
 
 struct SimulationView: View {
     @State private var scene: GameScene = {
@@ -66,16 +67,7 @@ struct SimulationView: View {
                 .onTapGesture { dismiss() }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.35))
-                }
-            }
-        }
+        .watchBackButton()
         .onReceive(NotificationCenter.default.publisher(for: .ricochetSimulationProgress)) { notif in
             if let info = notif.userInfo {
                 currentLevel = info["level"] as? Int ?? currentLevel

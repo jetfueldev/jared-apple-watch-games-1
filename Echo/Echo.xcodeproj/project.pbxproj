@@ -114,6 +114,7 @@
 			);
 			name = "Echo Watch App";
 			packageProductDependencies = (
+				E3C0B2A12FC1234500B1C2D3 /* WatchGameKit */,
 			);
 			productName = "Echo Watch App";
 			productReference = E3C0B20C2FC1234500B1C2D3 /* Echo Watch App.app */;
@@ -148,6 +149,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E3C0B2072FC1234500B1C2D3 /* Products */;
+			packageReferences = (
+				E3C0B2A02FC1234500B1C2D3 /* XCLocalSwiftPackageReference "WatchGameKit" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -442,6 +446,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E3C0B2A02FC1234500B1C2D3 /* XCLocalSwiftPackageReference "WatchGameKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../WatchGameKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E3C0B2A12FC1234500B1C2D3 /* WatchGameKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchGameKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E3C0B2022FC1234500B1C2D3 /* Project object */;
 }

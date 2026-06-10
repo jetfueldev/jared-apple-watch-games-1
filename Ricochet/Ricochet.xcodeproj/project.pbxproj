@@ -114,6 +114,7 @@
 			);
 			name = "Ricochet Watch App";
 			packageProductDependencies = (
+				D4B2A1A12FC1234500B1C2D3 /* WatchGameKit */,
 			);
 			productName = "Ricochet Watch App";
 			productReference = D4B2A10C2FC1234500B1C2D3 /* Ricochet Watch App.app */;
@@ -148,6 +149,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D4B2A1072FC1234500B1C2D3 /* Products */;
+			packageReferences = (
+				D4B2A1A02FC1234500B1C2D3 /* XCLocalSwiftPackageReference "WatchGameKit" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -442,6 +446,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D4B2A1A02FC1234500B1C2D3 /* XCLocalSwiftPackageReference "WatchGameKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../WatchGameKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D4B2A1A12FC1234500B1C2D3 /* WatchGameKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchGameKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D4B2A1022FC1234500B1C2D3 /* Project object */;
 }
