@@ -24,33 +24,60 @@ struct SimulationView: View {
 
             VStack {
                 Spacer()
-                HStack {
-                    Text("\(currentLevel)/\(LevelGenerator.totalLevels)")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.5))
-                    Spacer()
-                    HStack(spacing: 6) {
-                        HStack(spacing: 2) {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 8))
-                            Text("\(passCount)")
-                                .font(.system(size: 10, design: .rounded))
-                        }
-                        .foregroundStyle(.green.opacity(0.7))
+                HStack(spacing: 0) {
+                    Button {
+                        scene.jumpToAutoLevel(currentLevel - 1)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(currentLevel > 1 ? 0.6 : 0.15))
+                            .frame(width: 36, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
 
-                        if failCount > 0 {
+                    Spacer()
+
+                    VStack(spacing: 1) {
+                        Text("\(currentLevel)/\(LevelGenerator.totalLevels)")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.5))
+                        HStack(spacing: 6) {
                             HStack(spacing: 2) {
-                                Image(systemName: "forward.fill")
+                                Image(systemName: "checkmark")
                                     .font(.system(size: 8))
-                                Text("\(failCount)")
+                                Text("\(passCount)")
                                     .font(.system(size: 10, design: .rounded))
                             }
-                            .foregroundStyle(.orange.opacity(0.7))
+                            .foregroundStyle(.green.opacity(0.7))
+
+                            if failCount > 0 {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "forward.fill")
+                                        .font(.system(size: 8))
+                                    Text("\(failCount)")
+                                        .font(.system(size: 10, design: .rounded))
+                                }
+                                .foregroundStyle(.orange.opacity(0.7))
+                            }
                         }
                     }
+
+                    Spacer()
+
+                    Button {
+                        scene.jumpToAutoLevel(currentLevel + 1)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white.opacity(currentLevel < LevelGenerator.totalLevels ? 0.6 : 0.15))
+                            .frame(width: 36, height: 32)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 4)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 2)
             }
 
             if isDone {

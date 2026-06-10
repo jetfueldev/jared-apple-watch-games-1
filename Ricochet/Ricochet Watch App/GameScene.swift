@@ -98,10 +98,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let angle = result.solutionAngle ?? 0
             let path = result.path
 
+            // Pause so the level layout can be taken in before the shot
             run(.sequence([
-                .wait(forDuration: 0.15),
-                .run { [weak self] in self?.animateAimTo(angle: Double(angle), duration: 0.2) },
-                .wait(forDuration: 0.25),
+                .wait(forDuration: 0.8),
+                .run { [weak self] in self?.animateAimTo(angle: Double(angle), duration: 0.35) },
+                .wait(forDuration: 0.5),
                 .run { [weak self] in self?.playPath(path) }
             ]))
         } else {
@@ -271,9 +272,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         autoPlayCurrentLevel += 1
 
         run(.sequence([
-            .wait(forDuration: 0.15),
+            .wait(forDuration: 0.6),
             .run { [weak self] in self?.playNextAutoLevel() }
         ]))
+    }
+
+    func jumpToAutoLevel(_ n: Int) {
+        guard autoPlayMode, autoPlayStarted else { return }
+        guard n >= 1, n <= LevelGenerator.totalLevels else { return }
+        removeAllActions()
+        shotNode?.removeAllActions()
+        shotNode?.removeFromParent()
+        shotNode = nil
+        aimAngle = 0
+        shipNode.zRotation = 0
+        autoPlayCurrentLevel = n
+        playNextAutoLevel()
     }
 
     // MARK: - Boundary walls

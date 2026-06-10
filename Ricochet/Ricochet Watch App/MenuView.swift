@@ -38,27 +38,21 @@ struct MenuView: View {
                     .watchButton()
                 }
 
-                NavigationLink(destination: SimulationView()) {
-                    HStack {
+                HStack(spacing: 8) {
+                    NavigationLink(destination: SimulationView()) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 14))
                             .foregroundStyle(.yellow.opacity(0.7))
-                        Spacer()
                     }
-                    .padding(.horizontal, 12)
-                }
-                .watchButton()
+                    .watchButton()
 
-                NavigationLink(destination: SettingsView()) {
-                    HStack {
+                    NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 14))
                             .foregroundStyle(.white.opacity(0.5))
-                        Spacer()
                     }
-                    .padding(.horizontal, 12)
+                    .watchButton()
                 }
-                .watchButton()
             }
             .padding(.horizontal, 4)
         }
