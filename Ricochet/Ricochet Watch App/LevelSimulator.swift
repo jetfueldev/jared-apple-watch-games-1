@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 
 struct SimulationResult {
     let level: Int
@@ -6,6 +7,28 @@ struct SimulationResult {
     let solutionAngle: CGFloat?
     let bounces: Int
     let path: [CGPoint]
+}
+
+struct SolutionWindow {
+    let startDeg: CGFloat
+    let endDeg: CGFloat
+    let minBounces: Int
+    var widthDeg: CGFloat { endDeg - startDeg }
+}
+
+struct SolutionMap {
+    let level: Int
+    /// -1 = miss, otherwise bounce count of the hit at that sample
+    let samples: [Int]
+    let windows: [SolutionWindow]
+
+    var solvable: Bool { !windows.isEmpty }
+    var totalWidthDeg: CGFloat { windows.reduce(0) { $0 + $1.widthDeg } }
+    var directWidthDeg: CGFloat {
+        windows.filter { $0.minBounces == 0 }.reduce(0) { $0 + $1.widthDeg }
+    }
+    var minBounces: Int { windows.map(\.minBounces).min() ?? -1 }
+    var widestWindowDeg: CGFloat { windows.map(\.widthDeg).max() ?? 0 }
 }
 
 enum LevelSimulator {
@@ -74,6 +97,47 @@ enum LevelSimulator {
             bounces: 0,
             path: []
         )
+    }
+
+    // MARK: - Solution Map (full angle sweep)
+
+    static func solutionMap(level: Level, stepDeg: CGFloat = 0.05) -> SolutionMap {
+        let minAngle: CGFloat = -2.8
+        let maxAngle: CGFloat = 2.8
+        let stepRad = stepDeg * .pi / 180
+        let count = Int((maxAngle - minAngle) / stepRad)
+
+        var samples = [Int](repeating: -1, count: count + 1)
+        for i in 0...count {
+            let angle = minAngle + stepRad * CGFloat(i)
+            let result = castRay(angle: angle, level: level)
+            if result.hit { samples[i] = result.bounces }
+        }
+
+        var windows: [SolutionWindow] = []
+        var runStart = -1
+        var runMinBounces = Int.max
+
+        func closeRun(at endIndex: Int) {
+            guard runStart >= 0 else { return }
+            let startDeg = (minAngle + stepRad * CGFloat(runStart)) * 180 / .pi
+            let endDeg = (minAngle + stepRad * CGFloat(endIndex)) * 180 / .pi
+            windows.append(SolutionWindow(startDeg: startDeg, endDeg: endDeg, minBounces: runMinBounces))
+            runStart = -1
+            runMinBounces = Int.max
+        }
+
+        for i in 0...count {
+            if samples[i] >= 0 {
+                if runStart < 0 { runStart = i }
+                runMinBounces = min(runMinBounces, samples[i])
+            } else {
+                closeRun(at: i - 1)
+            }
+        }
+        closeRun(at: count)
+
+        return SolutionMap(level: level.number, samples: samples, windows: windows)
     }
 
     private static func pathLength(_ path: [CGPoint]) -> CGFloat {

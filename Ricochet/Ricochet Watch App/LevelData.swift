@@ -139,468 +139,364 @@ enum LevelData {
         switch n {
 
         // ═══════════════════════════════════════════
-        // ZONE 1: EARTH 🌍 (1-10) — Learn the basics
+        // ZONE 1: EARTH 🌍 (1-10) — Learn to aim
+        // Skill: Crown precision. Direct shots allowed,
+        // windows narrow from ~11° to ~4°. L10 previews banks.
         // ═══════════════════════════════════════════
 
-        case 1: // Tutorial — fire straight up
+        case 1: // Open sky — fire straight up
             return Def(targetX: 100, obstacles: [])
 
         case 2: // Offset — learn Crown aiming
-            return Def(targetX: 145, obstacles: [])
+            return Def(targetX: 152, obstacles: [])
 
-        case 3: // First wall — learn bouncing off obstacles
-            // Wide wall directly in the path, must angle around or bounce off it
+        case 3: // First gate — thread the gap
             return Def(targetX: 100, obstacles: [
-                line(30, 140, 170, 140),
+                line(1, 112, 94, 112),
+                line(106, 112, 199, 112),
             ])
 
-        case 4: // V-funnel — converging walls force a precise angle
-            return Def(targetX: 100, obstacles: [
-                line(20, 100, 85, 160),
-                line(180, 100, 115, 160),
+        case 4: // Offset gate — gap and target both off-center
+            return Def(targetX: 47, obstacles: [
+                line(1, 118, 64, 118),
+                line(76, 118, 199, 118),
             ])
 
-        case 5: // 🌙 Crescent — arc blocks center, must thread through opening
+        case 5: // Narrow gate — tighter thread
+            return Def(targetX: 100, obstacles: [
+                line(1, 130, 95, 130),
+                line(105, 130, 199, 130),
+            ])
+
+        case 6: // Double gate — align ship, two gaps, target on one line
+            return Def(targetX: 67, obstacles: [
+                line(1, 100, 77, 100),
+                line(93, 100, 199, 100),
+                line(1, 150, 69, 150),
+                line(81, 150, 199, 150),
+            ])
+
+        case 7: // Funnel — angled walls guide the shot to a slot
+            return Def(targetX: 100, obstacles: [
+                line(35, 95, 94, 148),
+                line(165, 95, 106, 148),
+            ])
+
+        case 8: // Breather — open chamber around the target
             var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 143, r: 40, from: .pi * 0.2, to: .pi * 0.85, segs: 14)
-            obs += sideShields(105, 175)
+            obs += ring(cx: 100, cy: 188, r: 34, gapAngle: -.pi / 2, gapSize: .pi / 2.2, segs: 16)
             return Def(targetX: 100, obstacles: obs)
 
-        case 6: // ⭕ Ring — gap at bottom, thread up through it
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 148, r: 35, gapAngle: -.pi / 2, gapSize: .pi / 2.5)
-            obs += sideShields(110, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 9: // Precision — tiny gate, target on the diagonal
+            return Def(targetX: 150, obstacles: [
+                line(1, 140, 130, 140),
+                line(140, 140, 199, 140),
+            ])
 
-        case 7: // ⭕ Ring — gap on right, must bounce to enter
-            var obs: [Obstacle] = []
-            obs += ring(cx: 95, cy: 143, r: 35, gapAngle: 0, gapSize: .pi / 3)
-            obs += sideShields(105, 175)
-            return Def(targetX: 80, obstacles: obs)
-
-        case 8: // ⚡ Lightning — zigzag blocks direct path
-            var obs: [Obstacle] = []
-            obs.append(line(25, 105, 130, 105))
-            obs.append(line(130, 105, 80, 135))
-            obs.append(line(80, 135, 175, 135))
-            obs.append(line(175, 135, 100, 165))
-            obs.append(line(100, 165, 180, 165))
-            obs += sideShields(95, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 9: // ⭐ Star — target inside, enter through missing edge
-            var obs: [Obstacle] = []
-            obs += star(cx: 100, cy: 143, outerR: 44, innerR: 20, points: 5, skip: [5, 6])
-            obs += sideShields(98, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 10: // 🪐 Saturn — inner ring + tilted ellipse ring
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 148, r: 18, gapAngle: -.pi / 2, gapSize: .pi / 2, segs: 12)
-            obs += ellipse(cx: 100, cy: 148, rx: 55, ry: 20,
-                          gapAngle: -.pi * 0.4, gapSize: .pi / 2, segs: 14)
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 10: // BOSS — shelf blocks the sky, bank off the left wall
+            return Def(targetX: 100, obstacles: [
+                line(50, 160, 199, 160),
+            ])
 
         // ═══════════════════════════════════════════
-        // ZONE 2: MOON 🌙 (11-20) — Space shapes
+        // ZONE 2: MOON 🌙 (11-20) — The bank shot
+        // Skill: bounce off side walls. Direct path is
+        // always blocked; the wall is the way.
         // ═══════════════════════════════════════════
 
-        case 11: // 🚀 Rocket — body blocks center, enter through exhaust
-            var obs: [Obstacle] = []
-            obs.append(line(100, 175, 70, 145))         // nose left
-            obs.append(line(100, 175, 130, 145))         // nose right
-            obs.append(line(70, 145, 70, 95))            // body left
-            obs.append(line(130, 145, 130, 95))          // body right
-            obs.append(line(70, 95, 55, 73))             // fin left
-            obs.append(line(130, 95, 145, 73))           // fin right
-            obs += sideShields(70, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 11: // Teach — wide roof, bank off either wall
+            return Def(targetX: 100, obstacles: [
+                line(40, 80, 160, 80),
+            ])
 
-        case 12: // 🛸 UFO — dome + disc blocks path, gap in disc center
-            var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 148, r: 30, from: 0, to: .pi, segs: 10) // dome
-            obs.append(line(35, 148, 70, 148))    // disc left
-            obs.append(line(130, 148, 165, 148))  // disc right (gap in middle)
-            obs.append(line(35, 138, 35, 148))    // disc edge left
-            obs.append(line(165, 138, 165, 148))  // disc edge right
-            obs.append(line(35, 138, 55, 138))    // bottom rim left
-            obs.append(line(145, 138, 165, 138))  // bottom rim right
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 12: // One way only — roof seals the right, bank left
+            return Def(targetX: 140, obstacles: [
+                line(30, 90, 165, 90),
+            ])
 
-        case 13: // ☄️ Comet — head near target, must navigate through tail gap
-            var obs: [Obstacle] = []
-            obs += arc(cx: 130, cy: 155, r: 24, from: -.pi * 0.3, to: .pi * 1.3, segs: 10)
-            obs.append(line(130, 131, 40, 95))    // tail upper
-            obs.append(line(130, 131, 50, 80))    // tail lower
-            obs += sideShields(75, 175)
-            return Def(targetX: 120, obstacles: obs)
+        case 13: // High gap — bank through the left slot
+            return Def(targetX: 100, obstacles: [
+                line(55, 140, 199, 140),
+            ])
 
-        case 14: // 🌍 Planet — concentric rings with staggered gaps
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 148, r: 25, gapAngle: -.pi / 2, gapSize: .pi / 2.5, segs: 14)
-            obs += ring(cx: 100, cy: 148, r: 45, gapAngle: .pi / 2, gapSize: .pi / 3, segs: 18)
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 14: // Mirror — bank right through the high slot
+            return Def(targetX: 60, obstacles: [
+                line(1, 120, 150, 120),
+            ])
 
-        case 15: // ✨ Constellation — three small rings connected by lines
-            var obs: [Obstacle] = []
-            obs += ring(cx: 55, cy: 108, r: 18, gapAngle: .pi * 0.3, gapSize: .pi / 2, segs: 10)
-            obs += ring(cx: 140, cy: 135, r: 18, gapAngle: .pi, gapSize: .pi / 2, segs: 10)
-            obs += ring(cx: 80, cy: 165, r: 18, gapAngle: -.pi / 3, gapSize: .pi / 2, segs: 10)
-            obs.append(line(73, 108, 122, 135))
-            obs.append(line(122, 135, 80, 147))
-            obs += sideShields(88, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 15: // Bank + thread — bounce left, then through the gate
+            return Def(targetX: 100, obstacles: [
+                line(42, 80, 199, 80),
+                line(1, 150, 44, 150),
+                line(61, 150, 199, 150),
+            ])
 
-        case 16: // 🌀 Galaxy — double spiral arms
-            var obs: [Obstacle] = []
-            obs += spiral(cx: 100, cy: 143, startR: 48, endR: 12,
-                         turns: 1.0, startAngle: 0, segs: 22, skip: [0, 21])
-            obs += spiral(cx: 100, cy: 143, startR: 48, endR: 12,
-                         turns: 1.0, startAngle: .pi, segs: 22, skip: [0, 21])
-            obs += sideShields(93, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 16: // Bank + thread, mirrored and tighter
+            return Def(targetX: 100, obstacles: [
+                line(1, 80, 158, 80),
+                line(1, 150, 140, 150),
+                line(156, 150, 199, 150),
+            ])
 
-        case 17: // 🔭 Telescope — two circles connected by tube corridor
-            var obs: [Obstacle] = []
-            obs += ring(cx: 60, cy: 113, r: 22, gapAngle: 0, gapSize: .pi / 2, segs: 12)
-            obs += ring(cx: 145, cy: 158, r: 18, gapAngle: .pi, gapSize: .pi / 2, segs: 10)
-            obs.append(line(82, 113, 127, 158))   // tube top
-            obs.append(line(60, 91, 145, 140))    // tube bottom
-            obs += sideShields(88, 175)
-            return Def(targetX: 80, obstacles: obs)
+        case 17: // Double bank — wall to wall to target
+            return Def(targetX: 100, obstacles: [
+                line(42, 158, 158, 158),
+            ])
 
-        case 18: // 🌑 Eclipse — overlapping arcs with narrow passage
-            var obs: [Obstacle] = []
-            obs += arc(cx: 82, cy: 143, r: 40, from: -.pi * 0.3, to: .pi * 1.3, segs: 12)
-            obs += arc(cx: 118, cy: 143, r: 40, from: .pi * 0.7 - .pi, to: .pi * 0.3, segs: 12)
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 18: // Breather — easy bank, either side
+            return Def(targetX: 100, obstacles: [
+                line(35, 85, 165, 85),
+            ])
 
-        case 19: // 🕳️ Wormhole — two rings connected by narrow corridor
-            var obs: [Obstacle] = []
-            obs += ring(cx: 55, cy: 108, r: 22, gapAngle: 0, gapSize: .pi / 2.5, segs: 12)
-            obs += ring(cx: 145, cy: 158, r: 22, gapAngle: .pi, gapSize: .pi / 2.5, segs: 12)
-            obs.append(line(77, 108, 123, 158))   // corridor wall top
-            obs.append(line(55, 86, 145, 136))    // corridor wall bottom
-            obs += sideShields(82, 175)
-            return Def(targetX: 75, obstacles: obs)
+        case 19: // Precision bank — tiny slot on the left
+            return Def(targetX: 100, obstacles: [
+                line(1, 140, 30, 140),
+                line(42, 140, 199, 140),
+            ])
 
-        case 20: // 🎯 Bullseye — three concentric rings, staggered gaps
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 143, r: 18, gapAngle: .pi / 2, gapSize: .pi / 2, segs: 10)
-            obs += ring(cx: 100, cy: 143, r: 35, gapAngle: -.pi / 2, gapSize: .pi / 3, segs: 14)
-            obs += ring(cx: 100, cy: 143, r: 52, gapAngle: .pi * 0.8, gapSize: .pi / 3, segs: 18)
-            obs += sideShields(88, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 20: // BOSS — double bank threading a mid-air gate
+            return Def(targetX: 100, obstacles: [
+                line(50, 158, 150, 158),
+                line(1, 110, 95, 110),
+                line(115, 110, 199, 110),
+            ])
 
         // ═══════════════════════════════════════════
-        // ZONE 3: STAR ⭐ (21-30) — Food shapes + absorb
+        // ZONE 3: STAR ⭐ (21-30) — Deflector panels
+        // Skill: ricochet off angled obstacles. 45° panels
+        // redirect shots sideways and even downward.
         // ═══════════════════════════════════════════
 
-        case 21: // 🍩 Donut — absorb outer ring, navigate through the hole
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 143, r: 42, gapAngle: -.pi / 2, gapSize: .pi / 3, .absorb)
-            obs += ring(cx: 100, cy: 143, r: 18, gapAngle: .pi / 2, gapSize: .pi / 2)
-            obs += sideShields(98, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 21: // Teach — panel up top deflects the shot left into the target
+            return Def(targetX: 60, obstacles: [
+                line(1, 160, 110, 160),
+                line(130, 225, 175, 180),
+            ])
 
-        case 22: // 🍕 Pizza slice — triangle with curved crust
-            var obs: [Obstacle] = []
-            obs.append(line(100, 85, 40, 170))                // left edge
-            obs.append(line(100, 85, 160, 170))               // right edge
-            obs += arc(cx: 100, cy: 170, r: 60, from: .pi * 1.05, to: .pi * 1.95, segs: 10)
-            obs += sideShields(80, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 22: // Mirror — climb the left side, deflect right
+            return Def(targetX: 140, obstacles: [
+                line(90, 160, 199, 160),
+                line(30, 185, 62, 217),
+            ])
 
-        case 23: // 🍔 Burger — stacked arcs block center path
-            var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 168, r: 48, from: 0, to: .pi, segs: 10)       // top bun
-            obs += arc(cx: 100, cy: 100, r: 48, from: .pi, to: 2 * .pi, segs: 10) // bottom bun
-            obs.append(line(55, 143, 145, 143, .absorb))  // patty (absorb)
-            obs.append(line(52, 128, 90, 128))             // lettuce left
-            obs.append(line(110, 128, 148, 128))           // lettuce right (gap)
-            obs += sideShields(92, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 23: // Periscope — two panels, hit the target from above
+            return Def(targetX: 100, obstacles: [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+            ])
 
-        case 24: // 🍦 Ice cream cone — cone + dome scoop blocks path
-            var obs: [Obstacle] = []
-            obs.append(line(100, 80, 55, 145))               // cone left
-            obs.append(line(100, 80, 145, 145))              // cone right
-            obs += arc(cx: 100, cy: 160, r: 45, from: .pi * 0.05, to: .pi * 0.95, segs: 10) // scoop
-            obs += sideShields(75, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 24: // Bumper — bank off a floating wall, not the screen edge
+            return Def(targetX: 130, obstacles: [
+                line(60, 75, 60, 165),
+                line(80, 165, 199, 165),
+            ])
 
-        case 25: // 🌮 Taco — U-shaped shell blocks center
-            var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 150, r: 48, from: .pi * 1.15, to: .pi * 1.85, segs: 12)
-            obs.append(line(60, 110, 90, 110, .absorb))       // filling left
-            obs.append(line(110, 110, 140, 110, .absorb))      // filling right (gap center)
-            obs += sideShields(95, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 25: // Panel + gate — thread the gate on the way up
+            return Def(targetX: 60, obstacles: [
+                line(1, 160, 110, 160),
+                line(130, 225, 175, 180),
+                line(1, 120, 156, 120),
+                line(172, 120, 199, 120),
+            ])
 
-        case 26: // 🧁 Cupcake — dome + wrapper blocks path
-            var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 153, r: 35, from: 0, to: .pi, segs: 10) // frosting dome
-            obs.append(line(65, 153, 50, 100))                 // wrapper left
-            obs.append(line(135, 153, 150, 100))               // wrapper right
-            obs.append(line(50, 100, 68, 100))                 // bottom left
-            obs.append(line(132, 100, 150, 100))               // bottom right (gap)
-            obs += sideShields(92, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 26: // Pocket drop — periscope into a walled pocket
+            return Def(targetX: 100, obstacles: [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+                line(80, 170, 80, 198),
+                line(120, 170, 120, 198),
+            ])
 
-        case 27: // 🥨 Pretzel — figure-8 with absorb crossings
-            var obs: [Obstacle] = []
-            obs += ring(cx: 70, cy: 125, r: 28, gapAngle: .pi * 0.3, gapSize: .pi / 2.5)
-            obs += ring(cx: 130, cy: 155, r: 28, gapAngle: .pi * 1.3, gapSize: .pi / 2.5)
-            obs.append(line(90, 107, 110, 137, .absorb))      // crossing
-            obs.append(line(90, 143, 110, 173, .absorb))       // crossing
-            obs += sideShields(95, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 27: // Bumper + gate — combine the bank with a thread
+            return Def(targetX: 130, obstacles: [
+                line(60, 75, 60, 165),
+                line(80, 165, 199, 165),
+                line(1, 90, 50, 90),
+                line(76, 90, 199, 90),
+            ])
 
-        case 28: // 🍎 Apple — absorb ring blocks center, stem + leaf above
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 140, r: 40, gapAngle: .pi / 2, gapSize: .pi / 3, .absorb)
-            obs.append(line(100, 175, 100, 180))              // stem
-            obs += arc(cx: 115, cy: 175, r: 18, from: .pi * 0.5, to: .pi * 1.1, segs: 5)
-            obs += sideShields(97, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 28: // Breather — one big friendly panel
+            return Def(targetX: 100, obstacles: [
+                line(1, 158, 128, 158),
+                line(140, 230, 185, 185),
+            ])
 
-        case 29: // 🍬 Candy — oval with absorb wrapper ends block sides
-            var obs: [Obstacle] = []
-            obs += ellipse(cx: 100, cy: 140, rx: 42, ry: 28,
-                          gapAngle: -.pi / 2, gapSize: .pi / 3)
-            obs.append(line(58, 140, 30, 155, .absorb))       // wrapper left top
-            obs.append(line(58, 140, 30, 125, .absorb))       // wrapper left bottom
-            obs.append(line(142, 140, 170, 155, .absorb))     // wrapper right top
-            obs.append(line(142, 140, 170, 125, .absorb))     // wrapper right bottom
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 29: // Precision — narrow climb, tight deflect
+            return Def(targetX: 140, obstacles: [
+                line(90, 160, 199, 160),
+                line(30, 185, 62, 217),
+                line(1, 120, 30, 120),
+                line(44, 120, 199, 120),
+            ])
 
-        case 30: // 🥚 Cosmic egg — absorb shell with crack opening
-            var obs: [Obstacle] = []
-            obs += ellipse(cx: 100, cy: 143, rx: 38, ry: 50,
-                          gapAngle: -.pi * 0.45, gapSize: .pi / 3, .absorb)
-            obs.append(line(73, 107, 83, 113))                 // crack detail
-            obs.append(line(83, 113, 76, 120))                 // crack detail
-            obs += sideShields(90, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 30: // BOSS — periscope drop through a high gate
+            return Def(targetX: 100, obstacles: [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+                line(1, 105, 150, 105),
+                line(168, 105, 199, 105),
+            ])
 
         // ═══════════════════════════════════════════
         // ZONE 4: PLANET 🪐 (31-40) — Complex shapes
         // ═══════════════════════════════════════════
 
-        case 31: // ❤️ Heart — parametric heart, gap at bottom point
+        case 31: // Teach — the gate is deadly now. Thread it clean.
+            return Def(targetX: 100, obstacles: [
+                line(1, 130, 92, 130, .absorb),
+                line(108, 130, 199, 130, .absorb),
+            ])
+
+        case 32: // Lava funnel — converging absorb walls
+            return Def(targetX: 100, obstacles: [
+                line(40, 170, 94, 110, .absorb),
+                line(160, 170, 106, 110, .absorb),
+            ])
+
+        case 33: // Bank over lava — direct shots burn
+            return Def(targetX: 100, obstacles: [
+                line(30, 120, 199, 120, .absorb),
+            ])
+
+        case 34: // Stacked gates — the high one is deadly
+            return Def(targetX: 67, obstacles: [
+                line(1, 100, 77, 100),
+                line(93, 100, 199, 100),
+                line(1, 150, 69, 150, .absorb),
+                line(81, 150, 199, 150, .absorb),
+            ])
+
+        case 35: // Bank + lava gate
+            return Def(targetX: 100, obstacles: [
+                line(42, 80, 199, 80),
+                line(1, 150, 44, 150, .absorb),
+                line(61, 150, 199, 150, .absorb),
+            ])
+
+        case 36: // Approach angle — shielded target, door faces down-left
             var obs: [Obstacle] = []
-            obs += heart(cx: 100, cy: 145, size: 72, segs: 24, skip: [11, 12, 13])
-            obs += sideShields(100, 175)
+            obs += ring(cx: 100, cy: 188, r: 30, gapAngle: -.pi * 0.8, gapSize: .pi / 3.6, segs: 16, .absorb)
             return Def(targetX: 100, obstacles: obs)
 
-        case 32: // 💎 Diamond — faceted gem with absorb outer facets
-            var obs: [Obstacle] = []
-            obs.append(line(100, 175, 60, 145))          // top left facet
-            obs.append(line(100, 175, 140, 145))         // top right facet
-            obs.append(line(60, 145, 50, 125, .absorb))  // upper left absorb
-            obs.append(line(140, 145, 150, 125, .absorb)) // upper right absorb
-            obs.append(line(50, 125, 75, 88))            // lower left
-            obs.append(line(150, 125, 125, 88))          // lower right
-            obs.append(line(75, 88, 100, 125))           // inner left
-            obs.append(line(125, 88, 100, 125))          // inner right
-            obs += sideShields(82, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 37: // Lava ladder — bank threading two deadly gates
+            return Def(targetX: 100, obstacles: [
+                line(42, 80, 199, 80),
+                line(1, 130, 20, 130, .absorb),
+                line(36, 130, 199, 130, .absorb),
+                line(1, 160, 57, 160, .absorb),
+                line(73, 160, 199, 160, .absorb),
+            ])
 
-        case 33: // ⚓ Anchor — cross + absorb curved hooks block sides
-            var obs: [Obstacle] = []
-            obs.append(line(100, 175, 100, 118))              // vertical shaft
-            obs.append(line(75, 160, 125, 160))               // crossbar
-            obs += arc(cx: 70, cy: 108, r: 22, from: -.pi / 2, to: .pi / 2, segs: 8, .absorb)
-            obs += arc(cx: 130, cy: 108, r: 22, from: .pi / 2, to: .pi * 1.5, segs: 8, .absorb)
-            obs += sideShields(85, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 38: // Breather — wide lava gate
+            return Def(targetX: 100, obstacles: [
+                line(1, 130, 70, 130, .absorb),
+                line(130, 130, 199, 130, .absorb),
+            ])
 
-        case 34: // 👑 Crown — zigzag points, absorb base blocks bottom
-            var obs: [Obstacle] = []
-            obs.append(line(35, 118, 35, 168))           // left wall
-            obs.append(line(165, 118, 165, 168))         // right wall
-            obs.append(line(35, 118, 68, 158))           // point 1 up
-            obs.append(line(68, 158, 100, 118))          // point 1 down
-            obs.append(line(100, 118, 132, 158))         // point 2 up
-            obs.append(line(132, 158, 165, 118))         // point 2 down
-            obs.append(line(35, 168, 80, 168, .absorb))  // base left absorb
-            obs.append(line(120, 168, 165, 168, .absorb)) // base right absorb (gap center)
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 39: // Precision — deadly diagonal thread
+            return Def(targetX: 150, obstacles: [
+                line(1, 140, 130, 140, .absorb),
+                line(140, 140, 199, 140, .absorb),
+            ])
 
-        case 35: // ☯️ Yin-yang — interlocking arcs with absorb inner
-            var obs: [Obstacle] = []
-            obs += arc(cx: 100, cy: 140, r: 44, from: .pi / 2, to: .pi * 1.5, segs: 10)
-            obs += arc(cx: 100, cy: 140, r: 44, from: -.pi / 2, to: .pi / 2, segs: 10)
-            obs += arc(cx: 100, cy: 162, r: 22, from: -.pi / 2, to: .pi / 2, segs: 7, .absorb)
-            obs += arc(cx: 100, cy: 118, r: 22, from: .pi / 2, to: .pi * 1.5, segs: 7)
-            obs += sideShields(93, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 36: // ∞ Infinity — figure-8, absorb right loop
-            var obs: [Obstacle] = []
-            obs += ring(cx: 65, cy: 140, r: 32, gapAngle: 0, gapSize: .pi / 2.5)
-            obs += ring(cx: 135, cy: 140, r: 32, gapAngle: .pi, gapSize: .pi / 2.5, segs: 18, .absorb)
-            obs += sideShields(105, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 37: // 🦋 Butterfly — wing arcs + absorb body divider
-            var obs: [Obstacle] = []
-            obs += arc(cx: 55, cy: 140, r: 38, from: .pi * 0.2, to: .pi * 1.8, segs: 12)
-            obs += arc(cx: 145, cy: 140, r: 38, from: -.pi * 0.8, to: .pi * 0.8, segs: 12)
-            obs.append(line(98, 100, 98, 175, .absorb))  // body left
-            obs.append(line(102, 100, 102, 175, .absorb)) // body right
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 38: // 🛡️ Shield crest — oval + absorb cross interior
-            var obs: [Obstacle] = []
-            obs += ellipse(cx: 100, cy: 140, rx: 42, ry: 52,
-                          gapAngle: .pi / 2, gapSize: .pi / 3)
-            obs.append(line(62, 140, 138, 140, .absorb))     // horizontal cross
-            obs.append(line(100, 100, 100, 172, .absorb))    // vertical cross
-            obs += sideShields(85, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 39: // ❄️ Snowflake — 6-fold radial pattern
-            var obs: [Obstacle] = []
-            for i in 0..<6 {
-                if i == 0 { continue }
-                let angle = CGFloat(i) / 6 * 2 * .pi - .pi / 2
-                let x1 = 100 + 12 * cos(angle)
-                let y1 = 140 + 12 * sin(angle)
-                let x2 = 100 + 48 * cos(angle)
-                let y2 = 140 + 48 * sin(angle)
-                let t: ObstacleType = (i == 3) ? .absorb : .ricochet
-                obs.append(line(x1, y1, x2, y2, t))
-                let bx = 100 + 32 * cos(angle)
-                let by = 140 + 32 * sin(angle)
-                let perpA = angle + .pi / 2
-                obs.append(line(bx + 10 * cos(perpA), by + 10 * sin(perpA),
-                               bx - 10 * cos(perpA), by - 10 * sin(perpA), t))
-            }
-            obs += sideShields(90, 175)
-            return Def(targetX: 100, obstacles: obs)
-
-        case 40: // 🐚 Nautilus shell — golden spiral
-            var obs: [Obstacle] = []
-            obs += spiral(cx: 100, cy: 140, startR: 52, endR: 8,
-                         turns: 1.8, startAngle: -.pi / 2, segs: 40, skip: [0, 1, 38, 39])
-            obs += sideShields(85, 175)
+        case 40: // BOSS — double bank through a lava gate
+            var obs: [Obstacle] = [
+                line(42, 158, 158, 158),
+                line(1, 110, 95, 110, .absorb),
+                line(115, 110, 199, 110, .absorb),
+            ]
+            obs += sideShields(170, 220)
             return Def(targetX: 100, obstacles: obs)
 
         // ═══════════════════════════════════════════
-        // ZONE 5: SUN ☀️ (41-50) — Master challenges
+        // ZONE 5: SUN ☀️ (41-50) — Mastery
+        // Skill: combine everything — banks, panels,
+        // pockets, and lava in multi-bounce runs.
         // ═══════════════════════════════════════════
 
-        case 41: // ⚙️ Clockwork — absorb inner ring + outer ring + spokes
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 140, r: 22, gapAngle: .pi * 0.7, gapSize: .pi / 3, segs: 12, .absorb)
-            obs += ring(cx: 100, cy: 140, r: 44, gapAngle: -.pi / 3, gapSize: .pi / 3.5)
-            obs.append(line(100, 78, 100, 118))   // spoke bottom
-            obs.append(line(56, 140, 78, 140))    // spoke left
-            obs.append(line(122, 140, 144, 140))  // spoke right
-            obs += sideShields(75, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 41: // Corner pocket — climb the right edge, deflect home
+            return Def(targetX: 60, obstacles: [
+                line(1, 160, 160, 160),
+                line(160, 225, 199, 186),
+            ])
 
-        case 42: // 🧬 DNA helix — double spiral with absorb rungs
-            var obs: [Obstacle] = []
-            obs += spiral(cx: 100, cy: 140, startR: 38, endR: 38,
-                         turns: 1.5, startAngle: 0, segs: 30, skip: [0, 14, 15, 29])
-            obs += spiral(cx: 100, cy: 140, startR: 38, endR: 38,
-                         turns: 1.5, startAngle: .pi, segs: 30, skip: [0, 14, 15, 29])
-            for i in stride(from: 0, to: 30, by: 6) {
-                let t = CGFloat(i) / 30
-                let a = 1.5 * 2 * .pi * t
-                let x1 = 100 + 38 * cos(a)
-                let y1 = 140 + 38 * sin(a)
-                let x2 = 100 + 38 * cos(a + .pi)
-                let y2 = 140 + 38 * sin(a + .pi)
-                obs.append(line(x1, y1, x2, y2, .absorb))
-            }
-            obs += sideShields(100, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 42: // Bank to panel — the climb lane is sealed from below
+            return Def(targetX: 60, obstacles: [
+                line(1, 160, 110, 160),
+                line(130, 225, 175, 180),
+                line(110, 70, 199, 70),
+            ])
 
-        case 43: // 🌪️ Tight maze spiral — absorb spiral with narrow gaps
-            var obs: [Obstacle] = []
-            obs += spiral(cx: 100, cy: 140, startR: 55, endR: 10,
-                         turns: 2.0, startAngle: -.pi / 2, segs: 48,
-                         skip: [0, 1, 11, 12, 23, 24, 35, 36, 46, 47], .absorb)
-            obs += sideShields(82, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 43: // Bank to periscope — three walls, one thread
+            return Def(targetX: 100, obstacles: [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+                line(105, 65, 199, 65),
+            ])
 
-        case 44: // 🔗 Chain links — three interlocking rings
-            var obs: [Obstacle] = []
-            obs += ring(cx: 60, cy: 112, r: 28, gapAngle: 0, gapSize: .pi / 2.5, segs: 14, .absorb)
-            obs += ring(cx: 100, cy: 140, r: 28, gapAngle: .pi, gapSize: .pi / 2.5)
-            obs += ring(cx: 140, cy: 165, r: 28, gapAngle: 0, gapSize: .pi / 2.5, segs: 14, .absorb)
-            obs += sideShields(82, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 44: // Double bank, double gate
+            return Def(targetX: 100, obstacles: [
+                line(42, 158, 158, 158),
+                line(1, 60, 12, 60),
+                line(28, 60, 199, 60),
+                line(1, 110, 97, 110),
+                line(113, 110, 199, 110),
+            ])
 
-        case 45: // ⚛️ Atom — absorb nucleus + two electron orbit ellipses
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 140, r: 14, gapAngle: -.pi / 2, gapSize: .pi / 2, segs: 10, .absorb)
-            obs += ellipse(cx: 100, cy: 140, rx: 52, ry: 25,
-                          gapAngle: -.pi * 0.4, gapSize: .pi / 3)
-            obs += ellipse(cx: 100, cy: 140, rx: 25, ry: 52,
-                          gapAngle: .pi * 0.6, gapSize: .pi / 3)
-            obs += sideShields(85, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 45: // Lava vault — bank under the shelf, panel finish
+            return Def(targetX: 100, obstacles: [
+                line(38, 120, 199, 120, .absorb),
+                line(40, 165, 160, 165, .absorb),
+                line(150, 235, 190, 195),
+            ])
 
-        case 46: // 🐉 Serpent — S-curve body with absorb scales
-            var obs: [Obstacle] = []
-            obs += arc(cx: 60, cy: 112, r: 35, from: 0, to: .pi, segs: 10)
-            obs += arc(cx: 140, cy: 155, r: 35, from: .pi, to: 2 * .pi, segs: 10)
-            obs.append(line(95, 112, 105, 155, .absorb))  // spine absorb
-            obs += arc(cx: 60, cy: 112, r: 22, from: .pi * 0.2, to: .pi * 0.8, segs: 5, .absorb)
-            obs += arc(cx: 140, cy: 155, r: 22, from: .pi * 1.2, to: .pi * 1.8, segs: 5, .absorb)
-            obs += sideShields(75, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 46: // Razor — double bank through a deadly slot
+            return Def(targetX: 100, obstacles: [
+                line(42, 158, 158, 158),
+                line(1, 110, 99, 110, .absorb),
+                line(111, 110, 199, 110, .absorb),
+                line(1, 60, 10, 60),
+                line(30, 60, 199, 60),
+            ])
 
-        case 47: // 🔥 Phoenix — spread wings with absorb fire
-            var obs: [Obstacle] = []
-            obs += arc(cx: 45, cy: 140, r: 42, from: .pi * 0.1, to: .pi * 0.9, segs: 10)
-            obs += arc(cx: 155, cy: 140, r: 42, from: .pi * 0.1, to: .pi * 0.9, segs: 10)
-            obs += arc(cx: 100, cy: 170, r: 15, from: 0, to: 2 * .pi, segs: 10, .absorb)
-            obs.append(line(90, 80, 100, 100, .absorb))    // fire left
-            obs.append(line(110, 80, 100, 100, .absorb))   // fire right
-            obs.append(line(100, 75, 100, 100, .absorb))   // fire center
-            obs += sideShields(75, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 47: // Pocket periscope behind a high gate
+            return Def(targetX: 100, obstacles: [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+                line(80, 170, 80, 198),
+                line(120, 170, 120, 198),
+                line(1, 105, 146, 105),
+                line(170, 105, 199, 105),
+            ])
 
-        case 48: // 💀 Skull — absorb head ring + eye sockets + jaw gap
-            var obs: [Obstacle] = []
-            obs += ring(cx: 100, cy: 150, r: 42, gapAngle: -.pi / 2, gapSize: .pi / 4, segs: 18, .absorb)
-            obs += ring(cx: 82, cy: 157, r: 10, gapAngle: 0, gapSize: .pi, segs: 8)
-            obs += ring(cx: 118, cy: 157, r: 10, gapAngle: .pi, gapSize: .pi, segs: 8)
-            obs.append(line(92, 137, 100, 130, .absorb))  // nose left
-            obs.append(line(108, 137, 100, 130, .absorb)) // nose right
-            obs.append(line(78, 113, 90, 108))             // jaw left
-            obs.append(line(122, 113, 110, 108))           // jaw right
-            obs += sideShields(85, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 48: // Lava corner — the climb is deadly on both sides
+            return Def(targetX: 60, obstacles: [
+                line(1, 160, 165, 160, .absorb),
+                line(160, 225, 199, 186),
+                line(1, 120, 145, 120, .absorb),
+            ])
 
-        case 49: // 🌌 Black hole — absorb spiral pulling inward
-            var obs: [Obstacle] = []
-            obs += spiral(cx: 100, cy: 140, startR: 55, endR: 12,
-                         turns: 1.5, startAngle: 0, segs: 36,
-                         skip: [0, 8, 9, 17, 18, 26, 27, 35], .absorb)
-            obs += ring(cx: 100, cy: 140, r: 8, gapAngle: -.pi / 2, gapSize: .pi / 2, segs: 8)
-            obs += sideShields(82, 175)
-            return Def(targetX: 100, obstacles: obs)
+        case 49: // Breather — pick your wall
+            return Def(targetX: 75, obstacles: [
+                line(40, 90, 160, 90),
+            ])
 
-        case 50: // 💥 Supernova — absorb star burst + concentric ring maze
-            var obs: [Obstacle] = []
-            obs += star(cx: 100, cy: 140, outerR: 52, innerR: 30,
-                       points: 6, skip: [0, 1, 6, 7], .absorb)
-            obs += ring(cx: 100, cy: 140, r: 20, gapAngle: .pi * 0.3, gapSize: .pi / 2.5, segs: 12)
-            obs += ring(cx: 100, cy: 140, r: 40, gapAngle: -.pi * 0.4, gapSize: .pi / 3, segs: 14)
-            obs += sideShields(85, 175)
+        case 50: // FINALE — gate, wall, panel, drop. Everything at once.
+            var obs: [Obstacle] = [
+                line(40, 160, 160, 160),
+                line(150, 222, 180, 192),
+                line(85, 200, 115, 230),
+                line(80, 170, 80, 198),
+                line(120, 170, 120, 198),
+                line(1, 105, 148, 105, .absorb),
+                line(170, 105, 199, 105, .absorb),
+            ]
+            obs += sideShields(170, 225)
             return Def(targetX: 100, obstacles: obs)
 
         default:
