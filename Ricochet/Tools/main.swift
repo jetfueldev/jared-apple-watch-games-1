@@ -39,15 +39,22 @@ func bandMinBounces(_ n: Int) -> Int {
     }
 }
 
+// Min bounces over aimable windows only — hairline (<0.15°) windows are
+// corner-graze simulator artifacts a player can never dial in with the Crown.
+func effectiveMinBounces(_ map: SolutionMap) -> Int {
+    map.windows.filter { $0.endDeg - $0.startDeg >= 0.15 }.map(\.minBounces).min() ?? map.minBounces
+}
+
 func verdict(_ n: Int, _ map: SolutionMap) -> String {
     if !map.solvable { return "✗ UNSOLVABLE" }
     let direct = map.directWidthDeg
     let total = map.totalWidthDeg
     let want = bandMinBounces(n)
+    let minB = effectiveMinBounces(map)
     if n >= 4 && direct > 0 { return "✗ DIRECT  — \(String(format: "%.1f", direct))° straight shot leaks through" }
-    if map.minBounces < want { return "✗ LOW     — minB \(map.minBounces), band needs \(want)" }
+    if minB < want { return "✗ LOW     — minB \(minB), band needs \(want)" }
     if total < 0.15 { return "✗ BRUTAL  — only \(String(format: "%.2f", total))° total" }
-    return "OK      — \(map.minBounces)+ bounce, \(String(format: "%.1f", total))° window"
+    return "OK      — \(minB)+ bounce, \(String(format: "%.1f", total))° window"
 }
 
 let zones = ["EARTH", "MOON", "STAR", "PLANET", "SUN"]
@@ -79,13 +86,13 @@ print("\n" + String(repeating: "═", count: 100))
 print("SUMMARY")
 let unsolvable = rows.filter { !$0.1.solvable }
 let directLeaks = rows.filter { $0.0 >= 4 && $0.1.directWidthDeg > 0 }
-let lowBounce = rows.filter { $0.1.solvable && $0.1.minBounces < bandMinBounces($0.0) }
+let lowBounce = rows.filter { $0.1.solvable && effectiveMinBounces($0.1) < bandMinBounces($0.0) }
 let brutal = rows.filter { $0.1.solvable && $0.1.totalWidthDeg < 0.15 }
 print("Unsolvable:   \(unsolvable.map { String($0.0) }.joined(separator: ", "))")
 print("Direct leaks: \(directLeaks.map { String($0.0) }.joined(separator: ", "))")
 print("Below band:   \(lowBounce.map { String($0.0) }.joined(separator: ", "))")
 print("Brutal:       \(brutal.map { String($0.0) }.joined(separator: ", "))")
-print("minB curve:   " + rows.map { $0.1.solvable ? String($0.1.minBounces) : "-" }.joined())
+print("minB curve:   " + rows.map { $0.1.solvable ? String(effectiveMinBounces($0.1)) : "-" }.joined())
 print("width curve:  " + rows.map { String(format: "%5.1f", $0.1.totalWidthDeg) }.joined())
 
 // In-game shots travel at 250pt/s and die after 6s → solutions must be under ~1400pt.

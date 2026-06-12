@@ -100,26 +100,27 @@ enum LevelData {
                 line(40, 80, 160, 80),
             ])
 
-        case 5: // One way only — roof seals the right, bank left
-            return Def(targetX: 140, obstacles: [
-                line(30, 90, 165, 90),
+        case 5: // Dome — shielded target, opening faces the left wall
+            return Def(targetX: 100, obstacles:
+                ring(cx: 100, cy: 188, r: 42, gapAngle: -.pi * 0.82, gapSize: .pi / 2.8, segs: 16))
+
+        case 6: // Island — a floating box blocks the sky
+            return Def(targetX: 100, obstacles: [
+                line(40, 100, 160, 100),
+                line(40, 150, 160, 150),
+                line(40, 100, 40, 150),
+                line(160, 100, 160, 150),
             ])
 
-        case 6: // High gap — bank through the left slot
+        case 7: // High gap — bank through the left slot
             return Def(targetX: 100, obstacles: [
                 line(55, 140, 199, 140),
             ])
 
-        case 7: // Mirror — bank right through the high slot
-            return Def(targetX: 60, obstacles: [
-                line(1, 120, 150, 120),
-            ])
-
-        case 8: // Bank + thread — bounce left, then through the gate
-            return Def(targetX: 100, obstacles: [
-                line(42, 80, 199, 80),
-                line(1, 150, 44, 150),
-                line(66, 150, 199, 150),
+        case 8: // Lone bumper — a floating wall and ledge guard the corner
+            return Def(targetX: 170, obstacles: [
+                line(140, 100, 140, 180),
+                line(145, 150, 199, 150),
             ])
 
         case 9: // Bank + thread, mirrored and tighter
@@ -145,43 +146,43 @@ enum LevelData {
                 line(42, 158, 158, 158),
             ])
 
-        case 12: // Bumper — bank off a floating wall, not the screen edge
+        case 12: // Diamond — kite shield around the target, mouth on the left
+            return Def(targetX: 100, obstacles:
+                ring(cx: 100, cy: 188, r: 45, gapAngle: .pi, gapSize: .pi / 3, segs: 4)
+                + [line(1, 100, 40, 100)])
+
+        case 13: // Totem — T-block under side ledges
+            return Def(targetX: 100, obstacles: [
+                line(100, 110, 100, 170),
+                line(40, 170, 160, 170),
+                line(1, 130, 40, 130),
+                line(160, 130, 199, 130),
+            ])
+
+        case 14: // Bumper — bank off a floating wall, not the screen edge
             return Def(targetX: 130, obstacles: [
                 line(60, 75, 60, 165),
                 line(80, 165, 199, 165),
             ])
 
-        case 13: // Bumper, mirrored
-            return Def(targetX: 70, obstacles: [
-                line(140, 75, 140, 165),
-                line(1, 165, 120, 165),
-            ])
-
-        case 14: // Double bank through a mid-air gate
+        case 15: // Double bank through a mid-air gate
             return Def(targetX: 100, obstacles: [
                 line(50, 158, 150, 158),
                 line(1, 110, 88, 110),
                 line(122, 110, 199, 110),
             ])
 
-        case 15: // Gate narrows
-            return Def(targetX: 100, obstacles: [
-                line(50, 158, 150, 158),
-                line(1, 110, 91, 110),
-                line(119, 110, 199, 110),
+        case 16: // Slalom — staggered bumpers, weave through
+            return Def(targetX: 170, obstacles: [
+                line(60, 75, 60, 150),
+                line(140, 115, 140, 190),
+                line(150, 165, 200, 165),
             ])
 
-        case 16: // Bumper run — target deep in the corner
+        case 17: // Bumper run — target deep in the corner
             return Def(targetX: 150, obstacles: [
-                line(60, 75, 60, 165),
-                line(80, 165, 199, 165),
-            ])
-
-        case 17: // Gate narrows
-            return Def(targetX: 100, obstacles: [
-                line(50, 158, 150, 158),
-                line(1, 110, 95, 110),
-                line(115, 110, 199, 110),
+                line(60, 75, 60, 172),
+                line(70, 165, 199, 165),
             ])
 
         case 18: // Two gates — thread the top slot first
@@ -193,13 +194,12 @@ enum LevelData {
                 line(118, 110, 199, 110),
             ])
 
-        case 19: // Two gates, tighter
+        case 19: // Chevron — wings split every straight shot
             return Def(targetX: 100, obstacles: [
-                line(42, 158, 158, 158),
-                line(1, 60, 11, 60),
-                line(31, 60, 199, 60),
-                line(1, 110, 95, 110),
-                line(115, 110, 199, 110),
+                line(30, 165, 100, 120),
+                line(100, 120, 170, 165),
+                line(1, 135, 45, 135),
+                line(155, 135, 199, 135),
             ])
 
         case 20: // BOSS — double bank, double gate
