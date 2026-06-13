@@ -292,15 +292,16 @@ function bandMin(n) {
   if (n <= 3) return 0; if (n <= 10) return 1; if (n <= 20) return 2;
   if (n <= 30) return 3; if (n <= 40) return 4; return 5;
 }
-function computeSolution() {
-  const segs = flatten(state.recipes);
+// Pure: sweep a board and return its solution map + best path. No side effects.
+function solveBoard(recipes, tx) {
+  const segs = flatten(recipes);
   const stepDeg = 0.1, lo = -160, hi = 160;
   const count = Math.round((hi - lo) / stepDeg);
   const samples = new Int8Array(count + 1).fill(-1);
   let best = null, bestLen = Infinity;
   for (let i = 0; i <= count; i++) {
     const deg = lo + i * stepDeg;
-    const r = castRay(deg * Math.PI / 180, segs, state.tx);
+    const r = castRay(deg * Math.PI / 180, segs, tx);
     if (r.hit) {
       samples[i] = Math.min(r.bounces, 99);
       let len = 0;
@@ -311,7 +312,6 @@ function computeSolution() {
       }
     }
   }
-  // windows
   const windows = [];
   let runStart = -1, runMin = 99;
   for (let i = 0; i <= count + 1; i++) {
@@ -327,9 +327,30 @@ function computeSolution() {
   const aimable = windows.filter(w => w.b - w.a >= 0.15);
   const effMinB = aimable.length ? Math.min(...aimable.map(w => w.minB))
                 : windows.length ? Math.min(...windows.map(w => w.minB)) : -1;
-  solMap = { samples, stepDeg, lo, windows, total, direct, effMinB, bestLen };
-  bestPath = best ? best.path : null;
-  drawStrip(); drawStats(best);
+  return { samples, stepDeg, lo, windows, total, direct, effMinB, bestLen, bestPath: best ? best.path : null, bestBounces: best ? best.bounces : -1 };
+}
+
+// True if a board fully satisfies its slot's design rules.
+function boardPasses(slot, res) {
+  if (!res.windows.length) return false;                 // unwinnable
+  if (slot >= 4 && res.direct > 0) return false;         // direct-shot leak
+  if (res.effMinB < bandMin(slot)) return false;         // below band floor
+  if (res.total < 0.15) return false;                    // brutal/unaimable
+  if (res.bestPath) {                                     // exceeds shot budget
+    let len = 0;
+    for (let k = 1; k < res.bestPath.length; k++)
+      len += Math.hypot(res.bestPath[k][0] - res.bestPath[k-1][0], res.bestPath[k][1] - res.bestPath[k-1][1]);
+    if (len > 1400) return false;
+  }
+  return true;
+}
+
+function computeSolution() {
+  const res = solveBoard(state.recipes, state.tx);
+  solMap = res;
+  bestPath = res.bestPath;
+  drawStrip();
+  drawStats(res.bestPath ? { bounces: res.bestBounces, path: res.bestPath } : null);
 }
 function scheduleSim() {
   clearTimeout(simTimer);
@@ -773,50 +794,82 @@ document.getElementById("copyBtn").addEventListener("click", () => {
 });
 
 // ───────────────────────────────────────────────────────────────
-// Suggest — drops a hand-authored starter template for the current
-// band, with mild parameter jitter. Not auto-generation: a scaffold
-// the designer then refines until the verdict reads OK.
+// Suggest — generate a fresh hand-authored template for the current
+// band (with jitter), then VALIDATE it against the solver. Only boards
+// that are winnable AND meet the band are shown; if a jittered variant
+// can't pass, we keep trying. We never present an unsolvable board.
 // ───────────────────────────────────────────────────────────────
 const J = n => Math.round((Math.random() * 2 - 1) * n);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const ln = (x1, y1, x2, y2, abs = false) => ({ kind: "line", x1, y1, x2, y2, abs });
 const bx = (x1, y1, x2, y2, abs = false) => ({ kind: "box", x1, y1, x2, y2, abs });
 const rg = (cx, cy, r, gapA, gapS, segs = 16, abs = false) => ({ kind: "ring", cx, cy, r, gapA, gapS, segs, abs });
+const sh = (y1, y2) => ({ kind: "shields", y1, y2, abs: true });
 const periscope = () => [ln(40, 160, 160, 160), ln(150, 222, 180, 192), ln(85, 200, 115, 230)];
 
 const TEMPLATES = {
   0: [
-    () => ({ tx: 100 + J(40), recipes: [] }),
-    () => ({ tx: 100, recipes: [ln(35, 95, 94, 148), ln(165, 95, 106, 148)] }),
+    () => ({ tx: 100 + J(45), recipes: [] }),
+    () => ({ tx: 100 + J(30), recipes: [] }),
+    () => ({ tx: 100, recipes: [ln(35 - J(6), 95, 94, 148), ln(165 + J(6), 95, 106, 148)] }),
   ],
-  1: [ // 1 bounce — roof bank, dome, box island
-    () => ({ tx: 100 + J(20), recipes: [ln(40 + J(8), 80 + J(6), 160 + J(8), 80 + J(6))] }),
-    () => ({ tx: 100, recipes: [rg(100, 188, 42 + J(5), -Math.PI * 0.82, Math.PI / 2.8, 16)] }),
-    () => { const w = 60 + J(15), cx = 100 + J(10); return { tx: 100 + J(10), recipes: [bx(cx - w / 2, 100 + J(6), cx + w / 2, 150 + J(6))] }; },
+  1: [ // 1 bounce
+    () => ({ tx: 100 + J(25), recipes: [ln(35 + J(8), 80 + J(8), 165 + J(8), 80 + J(8))] }),                  // roof bank
+    () => ({ tx: 100, recipes: [rg(100, 188, 42 + J(6), -Math.PI * 0.82 + J(0.2), Math.PI / 2.8, 16)] }),       // dome
+    () => { const w = 90 + J(20), cx = 100 + J(8), ty = 100 + J(10); return { tx: 100 + J(8), recipes: [bx(cx - w / 2, ty, cx + w / 2, ty + 50)] }; }, // box island
+    () => ({ tx: 100, recipes: [ln(55 + J(8), 140 + J(8), 199, 140 + J(8))] }),                                 // high gap, left slot
+    () => ({ tx: 170 + J(10), recipes: [ln(140 + J(8), 100, 140 + J(8), 180), ln(145, 150, 199, 150)] }),       // lone bumper
   ],
-  2: [ // 2 bounces — bumper+ledge, totem, chevron
-    () => ({ tx: 130 + J(20), recipes: [ln(60 + J(8), 75, 60 + J(8), 165), ln(80, 165 + J(6), 199, 165 + J(6))] }),
-    () => ({ tx: 100, recipes: [ln(100, 110, 100, 170), ln(40, 170, 160, 170), ln(1, 130, 40 + J(6), 130), ln(160 - J(6), 130, 199, 130)] }),
-    () => { const apex = 120 + J(10); return { tx: 100, recipes: [ln(30, 165, 100, apex), ln(100, apex, 170, 165), ln(1, 135, 45, 135), ln(155, 135, 199, 135)] }; },
+  2: [ // 2 bounces
+    () => ({ tx: 130 + J(20), recipes: [ln(60 + J(8), 75, 60 + J(8), 165), ln(80, 165 + J(8), 199, 165 + J(8))] }), // bumper + ledge
+    () => ({ tx: 100, recipes: [ln(100, 110, 100, 170), ln(40, 170, 160, 170), ln(1, 130, 40 + J(8), 130), ln(160 - J(8), 130, 199, 130)] }), // totem
+    () => { const apex = 120 + J(12); return { tx: 100, recipes: [ln(30, 165, 100, apex), ln(100, apex, 170, 165), ln(1, 135, 45 - J(6), 135), ln(155 + J(6), 135, 199, 135)] }; }, // chevron
+    () => ({ tx: 100, recipes: [ln(50, 158, 150, 158), ln(1, 110, 88 + J(6), 110), ln(122 - J(6), 110, 199, 110)] }), // double bank, mid gate
+    () => ({ tx: 100, recipes: [ln(42 + J(6), 158 + J(6), 158 - J(6), 158 + J(6))] }),                          // wall-to-wall teach
   ],
-  3: [ // 3 bounces — periscope+pocket, staircase
-    () => ({ tx: 100, recipes: [...periscope(), ln(70 + J(6), 170, 70 + J(6), 198), ln(130 - J(6), 170, 130 - J(6), 198)] }),
-    () => ({ tx: 130 + J(20), recipes: [ln(1, 100 + J(6), 140, 100 + J(6)), ln(60, 158 + J(6), 199, 158 + J(6))] }),
+  3: [ // 3 bounces
+    () => ({ tx: 100, recipes: [...periscope(), ln(70 + J(6), 170, 70 + J(6), 198), ln(130 - J(6), 170, 130 - J(6), 198)] }), // periscope + pocket
+    () => ({ tx: 130 + J(20), recipes: [ln(1, 100 + J(8), 140, 100 + J(8)), ln(60, 158 + J(8), 199, 158 + J(8))] }),          // staircase
+    () => ({ tx: 70 - J(20), recipes: [ln(60, 100, 199, 100), ln(1, 158, 140, 158)] }),                                       // staircase mirrored
+    () => ({ tx: 100, recipes: [...periscope(), ln(1, 105, 146, 105), ln(180, 105, 199, 105)] }),                             // periscope + roof gate
   ],
-  4: [ // 4 bounces — lava serpentine, lava bumper run
-    () => ({ tx: 130, recipes: [ln(60, 55, 199, 55), ln(1, 90, 160, 90, true), ln(40, 130, 199, 130, true), ln(1, 170, 160, 170, true)] }),
-    () => ({ tx: 130 + J(15), recipes: [ln(60, 75, 60, 165), ln(80, 165, 199, 165), ln(1, 90, 48 + J(6), 90, true), ln(78 + J(6), 90, 199, 90, true)] }),
+  4: [ // 4 bounces — lava
+    () => { const j = J(6); return { tx: 130 + J(10), recipes: [ln(60, 55 + j, 199, 55 + j), ln(1, 90 + j, 160, 90 + j, true), ln(40, 130 + j, 199, 130 + j, true), ln(1, 170 + j, 160, 170 + j, true)] }; }, // serpentine
+    () => { const j = J(6); return { tx: 70 - J(10), recipes: [ln(1, 55 + j, 140, 55 + j), ln(40, 90 + j, 199, 90 + j, true), ln(1, 130 + j, 160, 130 + j, true), ln(40, 170 + j, 199, 170 + j, true)] }; }, // serpentine mirrored
+    () => ({ tx: 130 + J(12), recipes: [ln(60 + J(6), 75, 60 + J(6), 165), ln(80, 165, 199, 165), ln(1, 90, 48 + J(6), 90, true), ln(78 + J(6), 90, 199, 90, true)] }), // lava bumper run
   ],
-  5: [ // 5+ bounces — pocket periscope + gate, razor gate + shields
-    () => ({ tx: 100, recipes: [...periscope(), ln(76, 170, 76, 198), ln(124, 170, 124, 198), ln(1, 105, 140, 105), ln(178, 105, 199, 105)] }),
-    () => ({ tx: 158, recipes: [ln(42, 158, 158, 158), ln(1, 110, 92, 110), ln(118, 110, 199, 110), { kind: "shields", y1: 170, y2: 225, abs: true }] }),
+  5: [ // 5+ bounces
+    () => { const o = J(6), g = J(8); return { tx: 100, recipes: [...periscope(), ln(76 - o, 170, 76 - o, 198), ln(124 + o, 170, 124 + o, 198), ln(1, 105, 140 + g, 105), ln(178 - g, 105, 199, 105)] }; }, // pocket periscope + gate
+    () => { const o = J(6); return { tx: 100, recipes: [...periscope(), ln(80 - o, 170, 80 - o, 198), ln(120 + o, 170, 120 + o, 198), ln(1, 60 + J(6), 150, 60 + J(6)), ln(50, 105, 199, 105)] }; }, // pocket periscope + double roof
+    () => { const o = J(5), g = J(6); return { tx: 100, recipes: [...periscope(), ln(84 - o, 170, 84 - o, 198), ln(116 + o, 170, 116 + o, 198), ln(1, 105, 146 + g, 105, true), ln(170 - g, 105, 199, 105, true), sh(170, 225)] }; }, // absorb gate + shields
   ],
 };
+
+function suggestBoard() {
+  const band = bandMin(state.slot);
+  const pool = TEMPLATES[band] || TEMPLATES[1];
+  let fallback = null, fallbackScore = -Infinity;
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const t = pick(pool)();
+    const tx = Math.max(20, Math.min(180, Math.round(t.tx)));
+    const recipes = t.recipes.map(r => ({ ...r }));
+    const res = solveBoard(recipes, tx);
+    if (boardPasses(state.slot, res)) return { tx, recipes };       // perfect — winnable & in-band
+    // otherwise remember the best winnable board as a safety net
+    if (res.windows.length) {
+      const score = (res.effMinB >= band ? 100 : res.effMinB * 10) - Math.abs(res.total - 5);
+      if (score > fallbackScore) { fallbackScore = score; fallback = { tx, recipes }; }
+    }
+  }
+  // Never return something unwinnable: a bare open board is always solvable.
+  return fallback || { tx: Math.max(20, Math.min(180, 100 + J(40))), recipes: [] };
+}
+
 document.getElementById("suggestBtn").addEventListener("click", () => {
   pushUndo();
-  const pool = TEMPLATES[bandMin(state.slot)] || TEMPLATES[1];
-  const t = pool[Math.floor(Math.random() * pool.length)]();
-  state.tx = Math.max(20, Math.min(180, Math.round(t.tx)));
-  state.recipes = t.recipes.map(r => ({ ...r }));
+  const b = suggestBoard();
+  state.tx = b.tx;
+  state.recipes = b.recipes;
   document.getElementById("targetX").value = state.tx;
   selected = -1;
   refresh();
