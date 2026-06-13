@@ -70,6 +70,10 @@
       <span class="tag" id="bandTag"></span>
     </div>
     <div class="row">
+      <button id="suggestBtn">🎲 Suggest board</button>
+      <span class="hint">drops a band-appropriate starter template to refine</span>
+    </div>
+    <div class="row">
       <label>target x</label>
       <input id="targetX" type="range" min="20" max="180" step="1" value="100">
       <span id="targetXVal" class="v">100</span>
@@ -83,11 +87,12 @@
       <button id="toolSelect" class="active">Select</button>
       <button id="toolLine">+ Line</button>
       <button id="toolLava">+ Lava line</button>
+      <button id="toolBox">+ Box</button>
       <button id="toolRing">+ Ring</button>
       <button id="toolShields">+ Shields</button>
       <button id="toolAim">🎯 Aim</button>
     </div>
-    <div class="hint">Line/Lava: drag on board. Ring: click center. Aim: move mouse to aim, click to lock. <kbd>esc</kbd> select · <kbd>⌫</kbd> delete · arrows nudge · <kbd>z</kbd> undo</div>
+    <div class="hint">Line/Lava/Box: drag on board. Ring: click center, drag rim handle to resize. Aim: move mouse to aim, click to lock. <kbd>esc</kbd> select · <kbd>⌫</kbd> delete · arrows nudge · <kbd>z</kbd> undo</div>
   </div>
 
   <div class="card">
@@ -210,6 +215,12 @@ function flatten(recipes) {
   const out = [];
   for (const rec of recipes) {
     if (rec.kind === "line") out.push([rec.x1, rec.y1, rec.x2, rec.y2, rec.abs ? 1 : 0]);
+    else if (rec.kind === "box") {
+      const a = rec.abs ? 1 : 0;
+      const lo = Math.min(rec.x1, rec.x2), hi = Math.max(rec.x1, rec.x2);
+      const bo = Math.min(rec.y1, rec.y2), to = Math.max(rec.y1, rec.y2);
+      out.push([lo, bo, hi, bo, a], [hi, bo, hi, to, a], [hi, to, lo, to, a], [lo, to, lo, bo, a]);
+    }
     else if (rec.kind === "ring") out.push(...ringSegs(rec));
     else if (rec.kind === "shields") out.push([5, rec.y1, 5, rec.y2, 1], [195, rec.y1, 195, rec.y2, 1]);
   }
@@ -369,7 +380,7 @@ function drawBoard() {
       bctx.lineCap = "round";
       bctx.beginPath(); bctx.moveTo(X(s[0]), Y(s[1])); bctx.lineTo(X(s[2]), Y(s[3])); bctx.stroke();
     }
-    if (isSel && rec.kind === "line") {
+    if (isSel && (rec.kind === "line" || rec.kind === "box")) {
       for (const [hx, hy] of [[rec.x1, rec.y1], [rec.x2, rec.y2]]) {
         bctx.beginPath(); bctx.arc(X(hx), Y(hy), 6, 0, 7);
         bctx.fillStyle = "#fff"; bctx.fill();
@@ -378,6 +389,10 @@ function drawBoard() {
     if (isSel && rec.kind === "ring") {
       bctx.beginPath(); bctx.arc(X(rec.cx), Y(rec.cy), 5, 0, 7);
       bctx.fillStyle = "#fff"; bctx.fill();
+      const ha = rec.gapA + Math.PI;            // rim handle opposite the gap
+      const rx = rec.cx + rec.r * Math.cos(ha), ry = rec.cy + rec.r * Math.sin(ha);
+      bctx.beginPath(); bctx.arc(X(rx), Y(ry), 6, 0, 7);
+      bctx.fillStyle = "#ffd86b"; bctx.fill();
     }
   });
   // best path (faint)
@@ -458,6 +473,11 @@ function renderParams() {
     html = `<div class="row">${numIn("x1", r.x1, -20, 220)}${numIn("y1", r.y1, 0, 240)}</div>` +
            `<div class="row">${numIn("x2", r.x2, -20, 220)}${numIn("y2", r.y2, 0, 240)}</div>` +
            `<div class="row"><button id="typeToggle">${r.abs ? "lava (absorb)" : "ricochet"}</button></div>`;
+  } else if (r.kind === "box") {
+    html = `<div class="row">${numIn("x1", r.x1, 0, 200)}${numIn("y1", r.y1, 0, 240)}</div>` +
+           `<div class="row">${numIn("x2", r.x2, 0, 200)}${numIn("y2", r.y2, 0, 240)}</div>` +
+           `<div class="row"><button id="typeToggle">${r.abs ? "lava (absorb)" : "ricochet"}</button></div>` +
+           `<div class="hint">w ${fmt(Math.abs(r.x2 - r.x1))} × h ${fmt(Math.abs(r.y2 - r.y1))}</div>`;
   } else if (r.kind === "ring") {
     html = `<div class="row">${numIn("cx", r.cx, 0, 200)}${numIn("cy", r.cy, 0, 240)}${numIn("r", r.r, 5, 120)}</div>` +
            `<div class="row"><label>gap°</label><input type="number" step="5" data-k="gapDeg" value="${Math.round(r.gapA * 180 / Math.PI)}">` +
@@ -492,6 +512,7 @@ function renderObsList() {
     div.className = "obsRow" + (i === selected ? " sel" : "");
     let desc;
     if (r.kind === "line") desc = `line ${fmt(r.x1)},${fmt(r.y1)} → ${fmt(r.x2)},${fmt(r.y2)}`;
+    else if (r.kind === "box") desc = `box ${fmt(r.x1)},${fmt(r.y1)} → ${fmt(r.x2)},${fmt(r.y2)}`;
     else if (r.kind === "ring") desc = `ring c(${fmt(r.cx)},${fmt(r.cy)}) r${fmt(r.r)}`;
     else desc = `shields y ${fmt(r.y1)}–${fmt(r.y2)}`;
     div.innerHTML = `<span>${desc}</span><span class="tag">${r.abs ? "lava" : r.kind === "shields" ? "lava" : "ric"}</span>`;
@@ -503,12 +524,25 @@ function renderObsList() {
 // ───────────────────────────────────────────────────────────────
 // Swift export
 // ───────────────────────────────────────────────────────────────
+function boxLines(r) {
+  const t = r.abs ? ", .absorb" : "";
+  const lo = Math.min(r.x1, r.x2), hi = Math.max(r.x1, r.x2);
+  const bo = Math.min(r.y1, r.y2), to = Math.max(r.y1, r.y2);
+  return [
+    `line(${fmt(lo)}, ${fmt(bo)}, ${fmt(hi)}, ${fmt(bo)}${t}),`,
+    `line(${fmt(hi)}, ${fmt(bo)}, ${fmt(hi)}, ${fmt(to)}${t}),`,
+    `line(${fmt(hi)}, ${fmt(to)}, ${fmt(lo)}, ${fmt(to)}${t}),`,
+    `line(${fmt(lo)}, ${fmt(to)}, ${fmt(lo)}, ${fmt(bo)}${t}),`,
+  ];
+}
 function renderExport() {
   const lines = [];
   for (const r of state.recipes) {
     if (r.kind === "line") {
       const t = r.abs ? ", .absorb" : "";
       lines.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${t}),`);
+    } else if (r.kind === "box") {
+      lines.push(...boxLines(r));
     } else if (r.kind === "shields") {
       lines.push(`// sideShields(${fmt(r.y1)}, ${fmt(r.y2)}) — splice outside the array literal`);
     }
@@ -526,9 +560,13 @@ function renderExport() {
       parts.push(`ring(cx: ${fmt(r.cx)}, cy: ${fmt(r.cy)}, r: ${fmt(r.r)}, gapAngle: ${(r.gapA).toFixed(3)}, gapSize: ${(r.gapS).toFixed(3)}, segs: ${r.segs}${r.abs ? ", .absorb" : ""})`);
     for (const r of shields)
       parts.push(`sideShields(${fmt(r.y1)}, ${fmt(r.y2)})`);
-    const plainLines = state.recipes.filter(r => r.kind === "line");
-    if (plainLines.length) {
-      const inner = plainLines.map(r => `line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${r.abs ? ", .absorb" : ""})`).join(",\n" + indent + "   ");
+    const plainItems = [];
+    for (const r of state.recipes) {
+      if (r.kind === "line") plainItems.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${r.abs ? ", .absorb" : ""})`);
+      else if (r.kind === "box") plainItems.push(...boxLines(r).map(l => l.replace(/,$/, "")));
+    }
+    if (plainItems.length) {
+      const inner = plainItems.join(",\n" + indent + "   ");
       parts.push(`[\n${indent}   ${inner},\n${indent}]`);
     }
     body = `        case ${state.slot}:\n            return Def(targetX: ${fmt(state.tx)}, obstacles:\n${indent}${parts.join("\n" + indent + "+ ")})`;
@@ -569,6 +607,14 @@ board.addEventListener("mousedown", e => {
     refresh(false);
     return;
   }
+  if (tool === "box") {
+    pushUndo();
+    state.recipes.push({ kind: "box", x1: snap(p.x), y1: snap(p.y), x2: snap(p.x), y2: snap(p.y), abs: false });
+    selected = state.recipes.length - 1;
+    drag = { mode: "p2" };
+    refresh(false);
+    return;
+  }
   if (tool === "ring") {
     pushUndo();
     state.recipes.push({ kind: "ring", cx: snap(p.x), cy: snap(p.y), r: 40, gapA: -Math.PI / 2, gapS: Math.PI / 3, segs: 16, abs: false });
@@ -580,11 +626,16 @@ board.addEventListener("mousedown", e => {
   // select tool
   if (selected >= 0) {
     const r = state.recipes[selected];
-    if (r.kind === "line") {
+    if (r.kind === "line" || r.kind === "box") {
       if (Math.hypot(p.x - r.x1, p.y - r.y1) < 5) { pushUndo(); drag = { mode: "p1" }; return; }
       if (Math.hypot(p.x - r.x2, p.y - r.y2) < 5) { pushUndo(); drag = { mode: "p2" }; return; }
     }
-    if (r.kind === "ring" && Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return; }
+    if (r.kind === "ring") {
+      const ha = r.gapA + Math.PI;
+      const rx = r.cx + r.r * Math.cos(ha), ry = r.cy + r.r * Math.sin(ha);
+      if (Math.hypot(p.x - rx, p.y - ry) < 7) { pushUndo(); drag = { mode: "ringRadius" }; return; }
+      if (Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return; }
+    }
   }
   const hit = hitTest(p);
   selected = hit;
@@ -605,10 +656,11 @@ board.addEventListener("mousemove", e => {
   if (drag.mode === "p1") { r.x1 = snap(p.x); r.y1 = snap(p.y); }
   else if (drag.mode === "p2") { r.x2 = snap(p.x); r.y2 = snap(p.y); }
   else if (drag.mode === "ringMove") { r.cx = snap(p.x); r.cy = snap(p.y); }
+  else if (drag.mode === "ringRadius") { r.r = Math.max(5, snap(Math.hypot(p.x - r.cx, p.y - r.cy))); }
   else if (drag.mode === "move") {
     const dx = p.x - drag.last.x, dy = p.y - drag.last.y;
     drag.last = p;
-    if (r.kind === "line") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
+    if (r.kind === "line" || r.kind === "box") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
     else if (r.kind === "ring") { r.cx += dx; r.cy += dy; }
     else if (r.kind === "shields") { r.y1 += dy; r.y2 += dy; }
   }
@@ -617,8 +669,8 @@ board.addEventListener("mousemove", e => {
 window.addEventListener("mouseup", () => {
   if (drag && selected >= 0) {
     const r = state.recipes[selected];
-    if (r.kind === "line") { r.x1 = snap(r.x1); r.y1 = snap(r.y1); r.x2 = snap(r.x2); r.y2 = snap(r.y2); }
-    if (tool === "line" || tool === "lava") setTool("select");
+    if (r.kind === "line" || r.kind === "box") { r.x1 = snap(r.x1); r.y1 = snap(r.y1); r.x2 = snap(r.x2); r.y2 = snap(r.y2); }
+    if (tool === "line" || tool === "lava" || tool === "box") setTool("select");
     refresh();
   }
   drag = null;
@@ -628,7 +680,7 @@ function snap(v) { return Math.round(v); }
 // ───────────────────────────────────────────────────────────────
 // Tools / keyboard / undo
 // ───────────────────────────────────────────────────────────────
-const toolButtons = { select: "toolSelect", line: "toolLine", lava: "toolLava", ring: "toolRing", shields: "toolShields", aim: "toolAim" };
+const toolButtons = { select: "toolSelect", line: "toolLine", lava: "toolLava", box: "toolBox", ring: "toolRing", shields: "toolShields", aim: "toolAim" };
 function setTool(t) {
   if (t === "shields") {
     pushUndo();
@@ -674,7 +726,7 @@ window.addEventListener("keydown", e => {
     const dx = e.key === "ArrowLeft" ? -d : e.key === "ArrowRight" ? d : 0;
     const dy = e.key === "ArrowDown" ? -d : e.key === "ArrowUp" ? d : 0;
     const r = state.recipes[selected];
-    if (r.kind === "line") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
+    if (r.kind === "line" || r.kind === "box") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
     else if (r.kind === "ring") { r.cx += dx; r.cy += dy; }
     else { r.y1 += dy; r.y2 += dy; }
     refresh(false);
@@ -718,6 +770,56 @@ document.getElementById("copyBtn").addEventListener("click", () => {
   navigator.clipboard.writeText(document.getElementById("exportBox").value);
   document.getElementById("copyMsg").textContent = "copied ✓";
   setTimeout(() => document.getElementById("copyMsg").textContent = "", 1500);
+});
+
+// ───────────────────────────────────────────────────────────────
+// Suggest — drops a hand-authored starter template for the current
+// band, with mild parameter jitter. Not auto-generation: a scaffold
+// the designer then refines until the verdict reads OK.
+// ───────────────────────────────────────────────────────────────
+const J = n => Math.round((Math.random() * 2 - 1) * n);
+const ln = (x1, y1, x2, y2, abs = false) => ({ kind: "line", x1, y1, x2, y2, abs });
+const bx = (x1, y1, x2, y2, abs = false) => ({ kind: "box", x1, y1, x2, y2, abs });
+const rg = (cx, cy, r, gapA, gapS, segs = 16, abs = false) => ({ kind: "ring", cx, cy, r, gapA, gapS, segs, abs });
+const periscope = () => [ln(40, 160, 160, 160), ln(150, 222, 180, 192), ln(85, 200, 115, 230)];
+
+const TEMPLATES = {
+  0: [
+    () => ({ tx: 100 + J(40), recipes: [] }),
+    () => ({ tx: 100, recipes: [ln(35, 95, 94, 148), ln(165, 95, 106, 148)] }),
+  ],
+  1: [ // 1 bounce — roof bank, dome, box island
+    () => ({ tx: 100 + J(20), recipes: [ln(40 + J(8), 80 + J(6), 160 + J(8), 80 + J(6))] }),
+    () => ({ tx: 100, recipes: [rg(100, 188, 42 + J(5), -Math.PI * 0.82, Math.PI / 2.8, 16)] }),
+    () => { const w = 60 + J(15), cx = 100 + J(10); return { tx: 100 + J(10), recipes: [bx(cx - w / 2, 100 + J(6), cx + w / 2, 150 + J(6))] }; },
+  ],
+  2: [ // 2 bounces — bumper+ledge, totem, chevron
+    () => ({ tx: 130 + J(20), recipes: [ln(60 + J(8), 75, 60 + J(8), 165), ln(80, 165 + J(6), 199, 165 + J(6))] }),
+    () => ({ tx: 100, recipes: [ln(100, 110, 100, 170), ln(40, 170, 160, 170), ln(1, 130, 40 + J(6), 130), ln(160 - J(6), 130, 199, 130)] }),
+    () => { const apex = 120 + J(10); return { tx: 100, recipes: [ln(30, 165, 100, apex), ln(100, apex, 170, 165), ln(1, 135, 45, 135), ln(155, 135, 199, 135)] }; },
+  ],
+  3: [ // 3 bounces — periscope+pocket, staircase
+    () => ({ tx: 100, recipes: [...periscope(), ln(70 + J(6), 170, 70 + J(6), 198), ln(130 - J(6), 170, 130 - J(6), 198)] }),
+    () => ({ tx: 130 + J(20), recipes: [ln(1, 100 + J(6), 140, 100 + J(6)), ln(60, 158 + J(6), 199, 158 + J(6))] }),
+  ],
+  4: [ // 4 bounces — lava serpentine, lava bumper run
+    () => ({ tx: 130, recipes: [ln(60, 55, 199, 55), ln(1, 90, 160, 90, true), ln(40, 130, 199, 130, true), ln(1, 170, 160, 170, true)] }),
+    () => ({ tx: 130 + J(15), recipes: [ln(60, 75, 60, 165), ln(80, 165, 199, 165), ln(1, 90, 48 + J(6), 90, true), ln(78 + J(6), 90, 199, 90, true)] }),
+  ],
+  5: [ // 5+ bounces — pocket periscope + gate, razor gate + shields
+    () => ({ tx: 100, recipes: [...periscope(), ln(76, 170, 76, 198), ln(124, 170, 124, 198), ln(1, 105, 140, 105), ln(178, 105, 199, 105)] }),
+    () => ({ tx: 158, recipes: [ln(42, 158, 158, 158), ln(1, 110, 92, 110), ln(118, 110, 199, 110), { kind: "shields", y1: 170, y2: 225, abs: true }] }),
+  ],
+};
+document.getElementById("suggestBtn").addEventListener("click", () => {
+  pushUndo();
+  const pool = TEMPLATES[bandMin(state.slot)] || TEMPLATES[1];
+  const t = pool[Math.floor(Math.random() * pool.length)]();
+  state.tx = Math.max(20, Math.min(180, Math.round(t.tx)));
+  state.recipes = t.recipes.map(r => ({ ...r }));
+  document.getElementById("targetX").value = state.tx;
+  selected = -1;
+  refresh();
 });
 
 function refresh(recomputeNow = true) {
