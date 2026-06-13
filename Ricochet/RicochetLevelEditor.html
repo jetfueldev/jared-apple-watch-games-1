@@ -46,6 +46,13 @@
   .obsRow:hover { background: #21262d; }
   .obsRow.sel { background: #1f3a5f; }
   .tag { font-size: 11px; color: var(--dim); }
+  #collList { display: flex; flex-wrap: wrap; gap: 5px; max-height: 150px; overflow-y: auto; }
+  .collChip { display: flex; align-items: center; gap: 5px; background: #21262d; border: 1px solid var(--border);
+              border-radius: 5px; padding: 3px 5px 3px 8px; cursor: pointer; font-size: 12px; }
+  .collChip:hover { border-color: var(--accent); }
+  .collChip .b { color: var(--ric); }
+  .collChip .x { color: var(--dim); padding: 0 3px; border-radius: 3px; }
+  .collChip .x:hover { background: var(--bad); color: #fff; }
   kbd { background: #21262d; border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-size: 11px; }
   .hint { color: var(--dim); font-size: 11px; }
 </style>
@@ -71,7 +78,16 @@
     </div>
     <div class="row">
       <button id="suggestBtn">Random board</button>
-      <span class="hint">drops a fresh random scatter of 1–8 objects (always winnable)</span>
+      <label>min bounces</label>
+      <select id="randomTier">
+        <option value="0">any</option>
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+        <option value="4">4+</option>
+        <option value="5">5+</option>
+      </select>
+      <span class="hint">random scatter, always winnable</span>
     </div>
     <div class="row">
       <label>target x</label>
@@ -103,6 +119,16 @@
   <div class="card">
     <h3>Obstacles</h3>
     <div id="obsList"></div>
+  </div>
+
+  <div class="card">
+    <h3>Collection</h3>
+    <div class="row">
+      <button id="addLevelBtn">+ Add this board</button>
+      <button id="exportAllBtn">Export all →</button>
+      <span class="tag" id="collCount">0 saved</span>
+    </div>
+    <div id="collList" class="hint">No boards saved yet — design or randomize one, then add it.</div>
   </div>
 
   <div class="card">
@@ -193,6 +219,7 @@ let aimAngle = null, aimLocked = false;
 let undoStack = [];
 let solMap = null, bestPath = null;
 let simTimer = null;
+let collection = [];   // saved boards: { tx, recipes, minB, total }
 
 const board = document.getElementById("board"), bctx = board.getContext("2d");
 const strip = document.getElementById("strip"), sctx = strip.getContext("2d");
@@ -393,12 +420,18 @@ function drawBoard() {
       }
     }
     if (isSel && rec.kind === "ring") {
+      const dot = (ang, color, rad = 6) => {
+        const hx = rec.cx + rec.r * Math.cos(ang), hy = rec.cy + rec.r * Math.sin(ang);
+        bctx.beginPath(); bctx.arc(X(hx), Y(hy), rad, 0, 7);
+        bctx.fillStyle = color; bctx.fill();
+      };
+      // center (move)
       bctx.beginPath(); bctx.arc(X(rec.cx), Y(rec.cy), 5, 0, 7);
       bctx.fillStyle = "#fff"; bctx.fill();
-      const ha = rec.gapA + Math.PI;            // rim handle opposite the gap
-      const rx = rec.cx + rec.r * Math.cos(ha), ry = rec.cy + rec.r * Math.sin(ha);
-      bctx.beginPath(); bctx.arc(X(rx), Y(ry), 6, 0, 7);
-      bctx.fillStyle = "#ffd86b"; bctx.fill();
+      dot(rec.gapA + Math.PI, "#ffd86b");                  // gold: radius (opposite gap)
+      dot(rec.gapA, "#7ee787");                            // green: swing opening around
+      dot(rec.gapA - rec.gapS / 2, "#79c0ff", 5);          // cyan: widen/narrow (edges)
+      dot(rec.gapA + rec.gapS / 2, "#79c0ff", 5);
     }
   });
   // best path (faint)
@@ -541,9 +574,9 @@ function boxLines(r) {
     `line(${fmt(lo)}, ${fmt(to)}, ${fmt(lo)}, ${fmt(bo)}${t}),`,
   ];
 }
-function renderExport() {
+function caseBlock(recipes, tx, slot) {
   const lines = [];
-  for (const r of state.recipes) {
+  for (const r of recipes) {
     if (r.kind === "line") {
       const t = r.abs ? ", .absorb" : "";
       lines.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${t}),`);
@@ -553,31 +586,31 @@ function renderExport() {
       lines.push(`// sideShields(${fmt(r.y1)}, ${fmt(r.y2)}) — splice outside the array literal`);
     }
   }
-  const rings = state.recipes.filter(r => r.kind === "ring");
-  const shields = state.recipes.filter(r => r.kind === "shields");
-  let body;
+  const rings = recipes.filter(r => r.kind === "ring");
+  const shields = recipes.filter(r => r.kind === "shields");
   const indent = "                ";
   const arr = lines.filter(l => !l.startsWith("//")).map(l => indent + l).join("\n");
   if (rings.length === 0 && shields.length === 0) {
-    body = `        case ${state.slot}:\n            return Def(targetX: ${fmt(state.tx)}, obstacles: [\n${arr}\n            ])`;
-  } else {
-    const parts = [];
-    for (const r of rings)
-      parts.push(`ring(cx: ${fmt(r.cx)}, cy: ${fmt(r.cy)}, r: ${fmt(r.r)}, gapAngle: ${(r.gapA).toFixed(3)}, gapSize: ${(r.gapS).toFixed(3)}, segs: ${r.segs}${r.abs ? ", .absorb" : ""})`);
-    for (const r of shields)
-      parts.push(`sideShields(${fmt(r.y1)}, ${fmt(r.y2)})`);
-    const plainItems = [];
-    for (const r of state.recipes) {
-      if (r.kind === "line") plainItems.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${r.abs ? ", .absorb" : ""})`);
-      else if (r.kind === "box") plainItems.push(...boxLines(r).map(l => l.replace(/,$/, "")));
-    }
-    if (plainItems.length) {
-      const inner = plainItems.join(",\n" + indent + "   ");
-      parts.push(`[\n${indent}   ${inner},\n${indent}]`);
-    }
-    body = `        case ${state.slot}:\n            return Def(targetX: ${fmt(state.tx)}, obstacles:\n${indent}${parts.join("\n" + indent + "+ ")})`;
+    return `        case ${slot}:\n            return Def(targetX: ${fmt(tx)}, obstacles: [\n${arr}\n            ])`;
   }
-  document.getElementById("exportBox").value = body;
+  const parts = [];
+  for (const r of rings)
+    parts.push(`ring(cx: ${fmt(r.cx)}, cy: ${fmt(r.cy)}, r: ${fmt(r.r)}, gapAngle: ${(r.gapA).toFixed(3)}, gapSize: ${(r.gapS).toFixed(3)}, segs: ${r.segs}${r.abs ? ", .absorb" : ""})`);
+  for (const r of shields)
+    parts.push(`sideShields(${fmt(r.y1)}, ${fmt(r.y2)})`);
+  const plainItems = [];
+  for (const r of recipes) {
+    if (r.kind === "line") plainItems.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${r.abs ? ", .absorb" : ""})`);
+    else if (r.kind === "box") plainItems.push(...boxLines(r).map(l => l.replace(/,$/, "")));
+  }
+  if (plainItems.length) {
+    const inner = plainItems.join(",\n" + indent + "   ");
+    parts.push(`[\n${indent}   ${inner},\n${indent}]`);
+  }
+  return `        case ${slot}:\n            return Def(targetX: ${fmt(tx)}, obstacles:\n${indent}${parts.join("\n" + indent + "+ ")})`;
+}
+function renderExport() {
+  document.getElementById("exportBox").value = caseBlock(state.recipes, state.tx, state.slot);
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -637,9 +670,10 @@ board.addEventListener("mousedown", e => {
       if (Math.hypot(p.x - r.x2, p.y - r.y2) < 5) { pushUndo(); drag = { mode: "p2" }; return; }
     }
     if (r.kind === "ring") {
-      const ha = r.gapA + Math.PI;
-      const rx = r.cx + r.r * Math.cos(ha), ry = r.cy + r.r * Math.sin(ha);
-      if (Math.hypot(p.x - rx, p.y - ry) < 7) { pushUndo(); drag = { mode: "ringRadius" }; return; }
+      const onRim = ang => Math.hypot(p.x - (r.cx + r.r * Math.cos(ang)), p.y - (r.cy + r.r * Math.sin(ang))) < 7;
+      if (onRim(r.gapA - r.gapS / 2) || onRim(r.gapA + r.gapS / 2)) { pushUndo(); drag = { mode: "gapWidth" }; return; }
+      if (onRim(r.gapA))         { pushUndo(); drag = { mode: "gapRotate" }; return; }
+      if (onRim(r.gapA + Math.PI)) { pushUndo(); drag = { mode: "ringRadius" }; return; }
       if (Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return; }
     }
   }
@@ -663,6 +697,12 @@ board.addEventListener("mousemove", e => {
   else if (drag.mode === "p2") { r.x2 = snap(p.x); r.y2 = snap(p.y); }
   else if (drag.mode === "ringMove") { r.cx = snap(p.x); r.cy = snap(p.y); }
   else if (drag.mode === "ringRadius") { r.r = Math.max(5, snap(Math.hypot(p.x - r.cx, p.y - r.cy))); }
+  else if (drag.mode === "gapRotate") { r.gapA = snapDeg(Math.atan2(p.y - r.cy, p.x - r.cx)); }
+  else if (drag.mode === "gapWidth") {
+    let d = Math.atan2(p.y - r.cy, p.x - r.cx) - r.gapA;
+    d = Math.atan2(Math.sin(d), Math.cos(d));        // wrap to [-π,π]
+    r.gapS = Math.min(Math.PI * 1.9, Math.max(Math.PI / 18, snapDeg(2 * Math.abs(d))));
+  }
   else if (drag.mode === "move") {
     const dx = p.x - drag.last.x, dy = p.y - drag.last.y;
     drag.last = p;
@@ -682,6 +722,8 @@ window.addEventListener("mouseup", () => {
   drag = null;
 });
 function snap(v) { return Math.round(v); }
+const FIVE_DEG = Math.PI / 36;
+function snapDeg(a) { return Math.round(a / FIVE_DEG) * FIVE_DEG; }  // snap angle to nearest 5°
 
 // ───────────────────────────────────────────────────────────────
 // Tools / keyboard / undo
@@ -810,29 +852,80 @@ function randomBoard() {
   return { tx: ri(25, 175), recipes };
 }
 
-function suggestBoard() {
-  // Take the FIRST random board the solver can actually beat (aimable
-  // window ≥ 0.5°). First-match keeps the object count honestly random —
-  // we don't bias toward sparse boards by optimizing window width.
+function suggestBoard(minBounces = 0) {
+  // Take the FIRST random board the solver can beat at the requested
+  // difficulty (aimable window ≥ 0.5°, effMinB ≥ minBounces). First-match
+  // keeps the object count honestly random — we don't bias toward sparse
+  // boards by optimizing window width.
   let loose = null;
-  for (let attempt = 0; attempt < 300; attempt++) {
+  for (let attempt = 0; attempt < 600; attempt++) {
     const b = randomBoard();
     const res = solveBoard(b.recipes, b.tx);
-    if (!res.windows.length) continue;             // unwinnable — never offer it
-    if (res.total >= 0.5) return b;                // winnable & aimable — done
-    if (!loose) loose = b;                          // thin but winnable, as a backstop
+    if (!res.windows.length) continue;                       // unwinnable — never offer it
+    if (res.effMinB < minBounces) continue;                  // below requested tier
+    if (res.total >= 0.5) return b;                          // winnable & aimable — done
+    if (!loose) loose = b;                                    // thin but winnable, as a backstop
   }
-  return loose || { tx: ri(25, 175), recipes: [] };  // open board is always winnable
+  return loose || (minBounces > 0 ? suggestBoard(minBounces - 1)   // relax a tier if we can't hit it
+                                  : { tx: ri(25, 175), recipes: [] });
 }
 
 document.getElementById("suggestBtn").addEventListener("click", () => {
   pushUndo();
-  const b = suggestBoard();
+  const tier = +document.getElementById("randomTier").value;
+  const b = suggestBoard(tier);
   state.tx = b.tx;
   state.recipes = b.recipes;
   document.getElementById("targetX").value = state.tx;
   selected = -1;
   refresh();
+});
+
+// ── Collection: bank as many boards as you want, export them all at once ──
+function saveCollection() {
+  try { localStorage.setItem("ricochetCollection", JSON.stringify(collection)); } catch (_) {}
+}
+function renderCollection() {
+  document.getElementById("collCount").textContent = `${collection.length} saved`;
+  const el = document.getElementById("collList");
+  if (!collection.length) {
+    el.innerHTML = "No boards saved yet — design or randomize one, then add it.";
+    return;
+  }
+  el.innerHTML = "";
+  collection.forEach((b, i) => {
+    const chip = document.createElement("span");
+    chip.className = "collChip";
+    chip.innerHTML = `<span>L${i + 1}</span> <span class="b">${b.minB}↗</span> <span class="x">×</span>`;
+    chip.title = `${b.recipes.length} objects · ${b.minB}+ bounce · ${b.total.toFixed(1)}° window — click to load`;
+    chip.addEventListener("click", e => {
+      if (e.target.classList.contains("x")) {
+        collection.splice(i, 1); saveCollection(); renderCollection(); renderExport(); return;
+      }
+      pushUndo();
+      state.tx = b.tx;
+      state.recipes = b.recipes.map(r => ({ ...r }));
+      document.getElementById("targetX").value = state.tx;
+      selected = -1;
+      refresh();
+    });
+    el.appendChild(chip);
+  });
+}
+document.getElementById("addLevelBtn").addEventListener("click", () => {
+  collection.push({
+    tx: state.tx,
+    recipes: state.recipes.map(r => ({ ...r })),
+    minB: solMap && solMap.effMinB >= 0 ? solMap.effMinB : 0,
+    total: solMap ? solMap.total : 0,
+  });
+  saveCollection();
+  renderCollection();
+});
+document.getElementById("exportAllBtn").addEventListener("click", () => {
+  if (!collection.length) return;
+  document.getElementById("exportBox").value =
+    collection.map((b, i) => caseBlock(b.recipes, b.tx, i + 1)).join("\n\n");
 });
 
 function refresh(recomputeNow = true) {
@@ -847,9 +940,12 @@ function refresh(recomputeNow = true) {
 try {
   const saved = localStorage.getItem("ricochetEditor");
   if (saved) state = JSON.parse(saved);
+  const savedColl = localStorage.getItem("ricochetCollection");
+  if (savedColl) collection = JSON.parse(savedColl);
 } catch (_) {}
 document.getElementById("slotNum").value = state.slot;
 document.getElementById("targetX").value = state.tx;
+renderCollection();
 refresh();
 </script>
 </body>
