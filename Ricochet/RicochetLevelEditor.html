@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ricochet Level Editor</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #c9d1d9;
+    --dim: #8b949e; --accent: #58a6ff; --ric: #4dd0e1; --abs: #e040fb;
+    --good: #56d364; --bad: #f85149; --warn: #e3b341;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+         display: flex; gap: 14px; padding: 14px; }
+  #left { flex: 0 0 auto; }
+  #boardWrap { position: relative; }
+  canvas { display: block; background: #04070c; border: 1px solid var(--border); border-radius: 6px; }
+  #strip { margin-top: 8px; }
+  #stats { margin-top: 6px; min-height: 38px; white-space: pre; color: var(--dim); }
+  #stats .v { color: var(--text); }
+  #stats .ok { color: var(--good); } #stats .fail { color: var(--bad); }
+  #right { flex: 1 1 auto; max-width: 460px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+  button, select {
+    background: #21262d; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.active { background: var(--accent); color: #04070c; border-color: var(--accent); }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .row:last-child { margin-bottom: 0; }
+  label { color: var(--dim); }
+  input[type=number] {
+    width: 64px; background: #0d1117; color: var(--text);
+    border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font: inherit;
+  }
+  input[type=range] { width: 130px; }
+  textarea {
+    width: 100%; height: 190px; background: #0d1117; color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: inherit; resize: vertical;
+  }
+  #obsList { max-height: 170px; overflow-y: auto; }
+  .obsRow { padding: 3px 6px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; }
+  .obsRow:hover { background: #21262d; }
+  .obsRow.sel { background: #1f3a5f; }
+  .tag { font-size: 11px; color: var(--dim); }
+  kbd { background: #21262d; border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  .hint { color: var(--dim); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div id="left">
+  <div id="boardWrap">
+    <canvas id="board" width="600" height="720"></canvas>
+  </div>
+  <canvas id="strip" width="600" height="26"></canvas>
+  <div id="stats">—</div>
+</div>
+
+<div id="right">
+  <div class="card">
+    <h3>Level</h3>
+    <div class="row">
+      <select id="levelSelect"></select>
+      <button id="loadBtn">Load</button>
+      <label>slot #</label><input id="slotNum" type="number" min="1" max="50" value="1">
+      <span class="tag" id="bandTag"></span>
+    </div>
+    <div class="row">
+      <label>target x</label>
+      <input id="targetX" type="range" min="20" max="180" step="1" value="100">
+      <span id="targetXVal" class="v">100</span>
+      <button id="clearBtn">Clear board</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Tools</h3>
+    <div class="row">
+      <button id="toolSelect" class="active">Select</button>
+      <button id="toolLine">+ Line</button>
+      <button id="toolLava">+ Lava line</button>
+      <button id="toolRing">+ Ring</button>
+      <button id="toolShields">+ Shields</button>
+      <button id="toolAim">🎯 Aim</button>
+    </div>
+    <div class="hint">Line/Lava: drag on board. Ring: click center. Aim: move mouse to aim, click to lock. <kbd>esc</kbd> select · <kbd>⌫</kbd> delete · arrows nudge · <kbd>z</kbd> undo</div>
+  </div>
+
+  <div class="card">
+    <h3>Selected</h3>
+    <div id="params"><span class="hint">Nothing selected.</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Obstacles</h3>
+    <div id="obsList"></div>
+  </div>
+
+  <div class="card">
+    <h3>Swift export</h3>
+    <div class="row">
+      <button id="copyBtn">Copy</button>
+      <span class="hint" id="copyMsg"></span>
+    </div>
+    <textarea id="exportBox" readonly></textarea>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ───────────────────────────────────────────────────────────────
+// Constants — must match Level.swift / LevelSimulator.swift exactly
+// ───────────────────────────────────────────────────────────────
+const SCENE_W = 200, SCENE_H = 240;
+const SHIP = { x: 100, y: 28 };
+const TARGET_Y = SCENE_H - 52;          // 188
+const TARGET_R = 16;
+const SPAWN_DIST = 20;
+const MAX_BOUNCES = 20;
+const AIM_LIMIT = 160 * Math.PI / 180;  // ±160° aim range
+const SCALE = 3;
+
+const LEVELS = [
+{"n":1,"tx":100.0,"obs":[]},
+{"n":2,"tx":152.0,"obs":[]},
+{"n":3,"tx":100.0,"obs":[[35.0,95.0,94.0,148.0,0],[165.0,95.0,106.0,148.0,0]]},
+{"n":4,"tx":100.0,"obs":[[40.0,80.0,160.0,80.0,0]]},
+{"n":5,"tx":100.0,"obs":[[81.9,150.1,94.9,146.3,0],[94.9,146.3,108.4,146.8,0],[108.4,146.8,121.0,151.6,0],[121.0,151.6,131.4,160.2,0],[131.4,160.2,138.6,171.6,0],[138.6,171.6,141.9,184.7,0],[141.9,184.7,140.8,198.1,0],[140.8,198.1,135.5,210.5,0],[135.5,210.5,126.5,220.6,0],[126.5,220.6,114.8,227.3,0],[114.8,227.3,101.6,230.0,0],[101.6,230.0,88.2,228.3,0],[88.2,228.3,76.0,222.5,0],[76.0,222.5,66.3,213.1,0],[66.3,213.1,60.1,201.1,0],[60.1,201.1,58.0,187.8,0]]},
+{"n":6,"tx":100.0,"obs":[[40.0,100.0,160.0,100.0,0],[40.0,150.0,160.0,150.0,0],[40.0,100.0,40.0,150.0,0],[160.0,100.0,160.0,150.0,0]]},
+{"n":7,"tx":100.0,"obs":[[55.0,140.0,199.0,140.0,0]]},
+{"n":8,"tx":170.0,"obs":[[140.0,100.0,140.0,180.0,0],[145.0,150.0,199.0,150.0,0]]},
+{"n":9,"tx":100.0,"obs":[[1.0,80.0,158.0,80.0,0],[1.0,150.0,140.0,150.0,0],[156.0,150.0,199.0,150.0,0]]},
+{"n":10,"tx":100.0,"obs":[[1.0,140.0,30.0,140.0,0],[42.0,140.0,199.0,140.0,0]]},
+{"n":11,"tx":100.0,"obs":[[42.0,158.0,158.0,158.0,0]]},
+{"n":12,"tx":100.0,"obs":[[61.0,165.5,111.6,144.5,0],[111.6,144.5,145.0,188.0,0],[145.0,188.0,111.6,231.5,0],[111.6,231.5,61.0,210.5,0],[1.0,100.0,40.0,100.0,0]]},
+{"n":13,"tx":100.0,"obs":[[100.0,110.0,100.0,170.0,0],[40.0,170.0,160.0,170.0,0],[1.0,130.0,40.0,130.0,0],[160.0,130.0,199.0,130.0,0]]},
+{"n":14,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0]]},
+{"n":15,"tx":100.0,"obs":[[50.0,158.0,150.0,158.0,0],[1.0,110.0,88.0,110.0,0],[122.0,110.0,199.0,110.0,0]]},
+{"n":16,"tx":170.0,"obs":[[60.0,75.0,60.0,150.0,0],[140.0,115.0,140.0,190.0,0],[150.0,165.0,200.0,165.0,0]]},
+{"n":17,"tx":150.0,"obs":[[60.0,75.0,60.0,172.0,0],[70.0,165.0,199.0,165.0,0]]},
+{"n":18,"tx":100.0,"obs":[[42.0,158.0,158.0,158.0,0],[1.0,60.0,10.0,60.0,0],[34.0,60.0,199.0,60.0,0],[1.0,110.0,92.0,110.0,0],[118.0,110.0,199.0,110.0,0]]},
+{"n":19,"tx":100.0,"obs":[[30.0,165.0,100.0,120.0,0],[100.0,120.0,170.0,165.0,0],[1.0,135.0,45.0,135.0,0],[155.0,135.0,199.0,135.0,0]]},
+{"n":20,"tx":100.0,"obs":[[42.0,158.0,158.0,158.0,0],[1.0,60.0,12.0,60.0,0],[28.0,60.0,199.0,60.0,0],[1.0,110.0,96.0,110.0,0],[114.0,110.0,199.0,110.0,0]]},
+{"n":21,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[70.0,170.0,70.0,198.0,0],[130.0,170.0,130.0,198.0,0]]},
+{"n":22,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0]]},
+{"n":23,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[20.0,192.0,50.0,222.0,0],[85.0,230.0,115.0,200.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0]]},
+{"n":24,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[1.0,105.0,146.0,105.0,0],[180.0,105.0,199.0,105.0,0]]},
+{"n":25,"tx":130.0,"obs":[[1.0,100.0,140.0,100.0,0],[60.0,158.0,199.0,158.0,0]]},
+{"n":26,"tx":70.0,"obs":[[60.0,100.0,199.0,100.0,0],[1.0,158.0,140.0,158.0,0]]},
+{"n":27,"tx":60.0,"obs":[[1.0,160.0,160.0,160.0,0],[160.0,225.0,199.0,186.0,0],[30.0,170.0,30.0,198.0,0],[90.0,170.0,90.0,198.0,0],[110.0,70.0,199.0,70.0,0]]},
+{"n":28,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[1.0,105.0,150.0,105.0,0],[174.0,105.0,199.0,105.0,0]]},
+{"n":29,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[1.0,105.0,150.0,105.0,0],[168.0,105.0,199.0,105.0,0]]},
+{"n":30,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[1.0,105.0,150.0,105.0,0],[164.0,105.0,199.0,105.0,0]]},
+{"n":31,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0],[1.0,90.0,44.0,90.0,0],[82.0,90.0,199.0,90.0,0]]},
+{"n":32,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0],[1.0,90.0,44.0,90.0,1],[82.0,90.0,199.0,90.0,1]]},
+{"n":33,"tx":70.0,"obs":[[140.0,75.0,140.0,165.0,0],[1.0,165.0,120.0,165.0,0],[1.0,90.0,118.0,90.0,1],[156.0,90.0,199.0,90.0,1]]},
+{"n":34,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0],[1.0,90.0,48.0,90.0,1],[78.0,90.0,199.0,90.0,1]]},
+{"n":35,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[70.0,170.0,70.0,198.0,0],[130.0,170.0,130.0,198.0,0],[1.0,105.0,138.0,105.0,0],[182.0,105.0,199.0,105.0,0]]},
+{"n":36,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0],[1.0,90.0,50.0,90.0,1],[76.0,90.0,199.0,90.0,1]]},
+{"n":37,"tx":130.0,"obs":[[60.0,75.0,60.0,165.0,0],[80.0,165.0,199.0,165.0,0],[1.0,90.0,50.0,90.0,1],[76.0,90.0,199.0,90.0,1],[5.0,180.0,5.0,230.0,1],[195.0,180.0,195.0,230.0,1]]},
+{"n":38,"tx":130.0,"obs":[[60.0,55.0,199.0,55.0,0],[1.0,90.0,160.0,90.0,1],[40.0,130.0,199.0,130.0,1],[1.0,170.0,160.0,170.0,1]]},
+{"n":39,"tx":70.0,"obs":[[1.0,55.0,140.0,55.0,0],[40.0,90.0,199.0,90.0,1],[1.0,130.0,160.0,130.0,1],[40.0,170.0,199.0,170.0,1]]},
+{"n":40,"tx":130.0,"obs":[[60.0,55.0,199.0,55.0,0],[1.0,90.0,165.0,90.0,1],[35.0,130.0,199.0,130.0,1],[1.0,170.0,165.0,170.0,1]]},
+{"n":41,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[76.0,170.0,76.0,198.0,0],[124.0,170.0,124.0,198.0,0],[1.0,105.0,140.0,105.0,0],[178.0,105.0,199.0,105.0,0]]},
+{"n":42,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,60.0,150.0,60.0,0],[50.0,105.0,199.0,105.0,0]]},
+{"n":43,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,140.0,105.0,0],[176.0,105.0,199.0,105.0,0]]},
+{"n":44,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,143.0,105.0,0],[173.0,105.0,199.0,105.0,0]]},
+{"n":45,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,146.0,105.0,0],[170.0,105.0,199.0,105.0,0]]},
+{"n":46,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,146.0,105.0,0],[170.0,105.0,199.0,105.0,0],[5.0,170.0,5.0,225.0,1],[195.0,170.0,195.0,225.0,1]]},
+{"n":47,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,143.0,105.0,1],[173.0,105.0,199.0,105.0,1]]},
+{"n":48,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[84.0,170.0,84.0,198.0,0],[116.0,170.0,116.0,198.0,0],[1.0,105.0,146.0,105.0,1],[170.0,105.0,199.0,105.0,1]]},
+{"n":49,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[84.0,170.0,84.0,198.0,0],[116.0,170.0,116.0,198.0,0],[1.0,105.0,147.0,105.0,1],[171.0,105.0,199.0,105.0,1],[5.0,175.0,5.0,225.0,1],[195.0,175.0,195.0,225.0,1]]},
+{"n":50,"tx":100.0,"obs":[[40.0,160.0,160.0,160.0,0],[150.0,222.0,180.0,192.0,0],[85.0,200.0,115.0,230.0,0],[80.0,170.0,80.0,198.0,0],[120.0,170.0,120.0,198.0,0],[1.0,105.0,148.0,105.0,1],[170.0,105.0,199.0,105.0,1],[5.0,170.0,5.0,225.0,1],[195.0,170.0,195.0,225.0,1]]}
+];
+
+// ───────────────────────────────────────────────────────────────
+// State
+// ───────────────────────────────────────────────────────────────
+// recipe kinds: line {x1,y1,x2,y2,abs} · ring {cx,cy,r,gapA,gapS,segs,abs} · shields {y1,y2}
+let state = { slot: 1, tx: 100, recipes: [] };
+let selected = -1;
+let tool = "select";
+let aimAngle = null, aimLocked = false;
+let undoStack = [];
+let solMap = null, bestPath = null;
+let simTimer = null;
+
+const board = document.getElementById("board"), bctx = board.getContext("2d");
+const strip = document.getElementById("strip"), sctx = strip.getContext("2d");
+
+// ───────────────────────────────────────────────────────────────
+// Geometry: flatten recipes to segments [x1,y1,x2,y2,abs]
+// ───────────────────────────────────────────────────────────────
+function ringSegs(r) {
+  const segs = [];
+  const start = r.gapA + r.gapS / 2, end = r.gapA + 2 * Math.PI - r.gapS / 2;
+  const step = (end - start) / r.segs;
+  for (let i = 0; i < r.segs; i++) {
+    const a1 = start + step * i, a2 = start + step * (i + 1);
+    segs.push([r.cx + r.r * Math.cos(a1), r.cy + r.r * Math.sin(a1),
+               r.cx + r.r * Math.cos(a2), r.cy + r.r * Math.sin(a2), r.abs ? 1 : 0]);
+  }
+  return segs;
+}
+function flatten(recipes) {
+  const out = [];
+  for (const rec of recipes) {
+    if (rec.kind === "line") out.push([rec.x1, rec.y1, rec.x2, rec.y2, rec.abs ? 1 : 0]);
+    else if (rec.kind === "ring") out.push(...ringSegs(rec));
+    else if (rec.kind === "shields") out.push([5, rec.y1, 5, rec.y2, 1], [195, rec.y1, 195, rec.y2, 1]);
+  }
+  return out;
+}
+
+// ───────────────────────────────────────────────────────────────
+// Physics — direct port of LevelSimulator.castRay
+// ───────────────────────────────────────────────────────────────
+function raySeg(ox, oy, dx, dy, x1, y1, x2, y2) {
+  const sx = x2 - x1, sy = y2 - y1;
+  const denom = dx * sy - dy * sx;
+  if (Math.abs(denom) < 1e-10) return null;
+  const t = ((x1 - ox) * sy - (y1 - oy) * sx) / denom;
+  const s = ((x1 - ox) * dy - (y1 - oy) * dx) / denom;
+  return (t > 0 && s >= 0 && s <= 1) ? t : null;
+}
+function rayCircle(ox, oy, dx, dy, cx, cy, r) {
+  const fx = ox - cx, fy = oy - cy;
+  const a = dx * dx + dy * dy, b = 2 * (fx * dx + fy * dy), c = fx * fx + fy * fy - r * r;
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return null;
+  const sq = Math.sqrt(disc);
+  const t1 = (-b - sq) / (2 * a), t2 = (-b + sq) / (2 * a);
+  if (t1 > 0.1) return t1;
+  if (t2 > 0.1) return t2;
+  return null;
+}
+function castRay(angle, segs, tx) {
+  const dx0 = -Math.sin(angle), dy0 = Math.cos(angle);
+  let px = SHIP.x + dx0 * SPAWN_DIST, py = SHIP.y + dy0 * SPAWN_DIST;
+  let dx = dx0, dy = dy0;
+  const path = [[px, py]];
+  // side walls bounce; top/bottom void; obstacles per type
+  const walls = [
+    [0, 0, 0, SCENE_H, 1], [SCENE_W, 0, SCENE_W, SCENE_H, 1],
+    [0, SCENE_H, SCENE_W, SCENE_H, 0], [0, 0, SCENE_W, 0, 0],
+    ...segs.map(s => [s[0], s[1], s[2], s[3], s[4] ? 0 : 1]),
+  ];
+  for (let bounce = 0; bounce <= MAX_BOUNCES; bounce++) {
+    const tHit = rayCircle(px, py, dx, dy, tx, TARGET_Y, TARGET_R);
+    let closest = Infinity, wi = -1;
+    for (let i = 0; i < walls.length; i++) {
+      const w = walls[i];
+      const t = raySeg(px, py, dx, dy, w[0], w[1], w[2], w[3]);
+      if (t !== null && t > 0.1 && t < closest) { closest = t; wi = i; }
+    }
+    if (tHit !== null && tHit > 0.1 && tHit < closest) {
+      path.push([px + dx * tHit, py + dy * tHit]);
+      return { hit: true, bounces: bounce, path };
+    }
+    if (wi < 0) return { hit: false, bounces: bounce, path };
+    const w = walls[wi];
+    if (!w[4]) { path.push([px + dx * closest, py + dy * closest]); return { hit: false, bounces: bounce, path }; }
+    px += dx * closest; py += dy * closest;
+    const wdx = w[2] - w[0], wdy = w[3] - w[1], len = Math.hypot(wdx, wdy);
+    const nx = -wdy / len, ny = wdx / len;
+    const dot = dx * nx + dy * ny;
+    dx -= 2 * dot * nx; dy -= 2 * dot * ny;
+    path.push([px, py]);
+  }
+  return { hit: false, bounces: MAX_BOUNCES, path };
+}
+
+// ───────────────────────────────────────────────────────────────
+// Solution map sweep (0.1° steps, ±160°) + verdict
+// ───────────────────────────────────────────────────────────────
+function bandMin(n) {
+  if (n <= 3) return 0; if (n <= 10) return 1; if (n <= 20) return 2;
+  if (n <= 30) return 3; if (n <= 40) return 4; return 5;
+}
+function computeSolution() {
+  const segs = flatten(state.recipes);
+  const stepDeg = 0.1, lo = -160, hi = 160;
+  const count = Math.round((hi - lo) / stepDeg);
+  const samples = new Int8Array(count + 1).fill(-1);
+  let best = null, bestLen = Infinity;
+  for (let i = 0; i <= count; i++) {
+    const deg = lo + i * stepDeg;
+    const r = castRay(deg * Math.PI / 180, segs, state.tx);
+    if (r.hit) {
+      samples[i] = Math.min(r.bounces, 99);
+      let len = 0;
+      for (let k = 1; k < r.path.length; k++)
+        len += Math.hypot(r.path[k][0] - r.path[k-1][0], r.path[k][1] - r.path[k-1][1]);
+      if (!best || r.bounces < best.bounces || (r.bounces === best.bounces && len < bestLen)) {
+        best = r; bestLen = len;
+      }
+    }
+  }
+  // windows
+  const windows = [];
+  let runStart = -1, runMin = 99;
+  for (let i = 0; i <= count + 1; i++) {
+    const v = i <= count ? samples[i] : -1;
+    if (v >= 0) { if (runStart < 0) runStart = i; runMin = Math.min(runMin, v); }
+    else if (runStart >= 0) {
+      windows.push({ a: lo + runStart * stepDeg, b: lo + (i - 1) * stepDeg, minB: runMin });
+      runStart = -1; runMin = 99;
+    }
+  }
+  const total = windows.reduce((s, w) => s + (w.b - w.a), 0);
+  const direct = windows.filter(w => w.minB === 0).reduce((s, w) => s + (w.b - w.a), 0);
+  const aimable = windows.filter(w => w.b - w.a >= 0.15);
+  const effMinB = aimable.length ? Math.min(...aimable.map(w => w.minB))
+                : windows.length ? Math.min(...windows.map(w => w.minB)) : -1;
+  solMap = { samples, stepDeg, lo, windows, total, direct, effMinB, bestLen };
+  bestPath = best ? best.path : null;
+  drawStrip(); drawStats(best);
+}
+function scheduleSim() {
+  clearTimeout(simTimer);
+  simTimer = setTimeout(computeSolution, 120);
+}
+
+// ───────────────────────────────────────────────────────────────
+// Rendering
+// ───────────────────────────────────────────────────────────────
+function X(x) { return x * SCALE; }
+function Y(y) { return (SCENE_H - y) * SCALE; }
+
+function drawBoard() {
+  bctx.clearRect(0, 0, board.width, board.height);
+  // grid
+  bctx.strokeStyle = "#10161f"; bctx.lineWidth = 1;
+  for (let g = 10; g < SCENE_W; g += 10) { bctx.beginPath(); bctx.moveTo(X(g), 0); bctx.lineTo(X(g), board.height); bctx.stroke(); }
+  for (let g = 10; g < SCENE_H; g += 10) { bctx.beginPath(); bctx.moveTo(0, Y(g)); bctx.lineTo(board.width, Y(g)); bctx.stroke(); }
+  // walls: sides bounce (cyan), top/bottom void (red dashed)
+  bctx.strokeStyle = "rgba(77,208,225,.55)"; bctx.lineWidth = 3; bctx.setLineDash([]);
+  bctx.beginPath(); bctx.moveTo(1, 0); bctx.lineTo(1, board.height); bctx.stroke();
+  bctx.beginPath(); bctx.moveTo(board.width - 1, 0); bctx.lineTo(board.width - 1, board.height); bctx.stroke();
+  bctx.strokeStyle = "rgba(248,81,73,.5)"; bctx.setLineDash([8, 6]);
+  bctx.beginPath(); bctx.moveTo(0, 1); bctx.lineTo(board.width, 1); bctx.stroke();
+  bctx.beginPath(); bctx.moveTo(0, board.height - 1); bctx.lineTo(board.width, board.height - 1); bctx.stroke();
+  bctx.setLineDash([]);
+  // target
+  bctx.beginPath(); bctx.arc(X(state.tx), Y(TARGET_Y), TARGET_R * SCALE, 0, 7);
+  bctx.fillStyle = "rgba(86,211,100,.12)"; bctx.fill();
+  bctx.strokeStyle = "rgba(86,211,100,.6)"; bctx.lineWidth = 1.5; bctx.stroke();
+  bctx.font = "30px serif"; bctx.textAlign = "center"; bctx.textBaseline = "middle";
+  bctx.fillText("👾", X(state.tx), Y(TARGET_Y));
+  // ship
+  bctx.fillStyle = "#c9d1d9";
+  bctx.beginPath();
+  bctx.moveTo(X(SHIP.x), Y(SHIP.y + 8));
+  bctx.lineTo(X(SHIP.x - 6), Y(SHIP.y - 7));
+  bctx.lineTo(X(SHIP.x + 6), Y(SHIP.y - 7));
+  bctx.closePath(); bctx.fill();
+  // obstacles, per recipe so selection can highlight
+  state.recipes.forEach((rec, i) => {
+    const segs = flatten([rec]);
+    const isSel = i === selected;
+    for (const s of segs) {
+      bctx.strokeStyle = s[4] ? "var-abs" : "var-ric";
+      bctx.strokeStyle = s[4] ? (isSel ? "#ff79ff" : "#e040fb") : (isSel ? "#9ff3ff" : "#4dd0e1");
+      bctx.lineWidth = isSel ? 5 : 3.5;
+      bctx.lineCap = "round";
+      bctx.beginPath(); bctx.moveTo(X(s[0]), Y(s[1])); bctx.lineTo(X(s[2]), Y(s[3])); bctx.stroke();
+    }
+    if (isSel && rec.kind === "line") {
+      for (const [hx, hy] of [[rec.x1, rec.y1], [rec.x2, rec.y2]]) {
+        bctx.beginPath(); bctx.arc(X(hx), Y(hy), 6, 0, 7);
+        bctx.fillStyle = "#fff"; bctx.fill();
+      }
+    }
+    if (isSel && rec.kind === "ring") {
+      bctx.beginPath(); bctx.arc(X(rec.cx), Y(rec.cy), 5, 0, 7);
+      bctx.fillStyle = "#fff"; bctx.fill();
+    }
+  });
+  // best path (faint)
+  if (bestPath && showBest) drawPath(bestPath, "rgba(139,148,158,.45)", 1.5, true);
+  // aim ray
+  if (aimAngle !== null) {
+    const r = castRay(aimAngle, flatten(state.recipes), state.tx);
+    drawPath(r.path, r.hit ? "rgba(86,211,100,.9)" : "rgba(248,81,73,.85)", 2, false);
+  }
+}
+let showBest = true;
+function drawPath(path, color, width, dashed) {
+  bctx.strokeStyle = color; bctx.lineWidth = width;
+  bctx.setLineDash(dashed ? [6, 5] : []);
+  bctx.beginPath();
+  bctx.moveTo(X(path[0][0]), Y(path[0][1]));
+  for (let i = 1; i < path.length; i++) bctx.lineTo(X(path[i][0]), Y(path[i][1]));
+  bctx.stroke(); bctx.setLineDash([]);
+}
+
+const BOUNCE_COLORS = ["#f85149","#e3b341","#56d364","#4dd0e1","#58a6ff","#bc8cff","#ff7b72","#ffa657","#7ee787","#79c0ff"];
+function drawStrip() {
+  sctx.clearRect(0, 0, strip.width, strip.height);
+  sctx.fillStyle = "#161b22"; sctx.fillRect(0, 0, strip.width, strip.height);
+  if (!solMap) return;
+  const n = solMap.samples.length;
+  for (let i = 0; i < n; i++) {
+    const v = solMap.samples[i];
+    if (v < 0) continue;
+    sctx.fillStyle = BOUNCE_COLORS[Math.min(v, 9)];
+    const x0 = i / n * strip.width;
+    sctx.fillRect(x0, 2, Math.max(1, strip.width / n), strip.height - 4);
+  }
+  // center tick (0° = straight up)
+  sctx.fillStyle = "rgba(255,255,255,.5)";
+  sctx.fillRect(strip.width / 2, 0, 1, strip.height);
+  if (aimAngle !== null) {
+    const deg = aimAngle * 180 / Math.PI;
+    sctx.fillStyle = "#fff";
+    sctx.fillRect((deg - solMap.lo) / 320 * strip.width - 1, 0, 2, strip.height);
+  }
+}
+function drawStats(best) {
+  const el = document.getElementById("stats");
+  if (!solMap) { el.textContent = "—"; return; }
+  const m = solMap, slot = state.slot, want = bandMin(slot);
+  let verdict, cls;
+  if (!m.windows.length)            { verdict = "✗ UNSOLVABLE"; cls = "fail"; }
+  else if (slot >= 4 && m.direct > 0) { verdict = `✗ DIRECT — ${m.direct.toFixed(1)}° straight-shot leak`; cls = "fail"; }
+  else if (m.effMinB < want)        { verdict = `✗ LOW — minB ${m.effMinB}, band needs ${want}`; cls = "fail"; }
+  else if (m.total < 0.15)          { verdict = `✗ BRUTAL — ${m.total.toFixed(2)}° total`; cls = "fail"; }
+  else                              { verdict = `OK — ${m.effMinB}+ bounce, ${m.total.toFixed(1)}° window`; cls = "ok"; }
+  const len = best ? Math.round(m.bestLen) : 0;
+  const lenWarn = len > 1400 ? "  ✗ exceeds 1400pt shot budget" : "";
+  el.innerHTML =
+    `windows <span class="v">${m.windows.length}</span>` +
+    `  total <span class="v">${m.total.toFixed(1)}°</span>` +
+    `  direct <span class="v">${m.direct.toFixed(1)}°</span>` +
+    `  minB <span class="v">${m.effMinB < 0 ? "-" : m.effMinB}</span>` +
+    `  best ${best ? `<span class="v">${best.bounces}b ${len}pt</span>${lenWarn}` : "-"}\n` +
+    `<span class="${cls}">${verdict}</span>   (slot ${slot}, band needs ${want}+ bounces)`;
+}
+
+// ───────────────────────────────────────────────────────────────
+// Selection / params panel / obstacle list
+// ───────────────────────────────────────────────────────────────
+function num(v) { return Math.round(v * 10) / 10; }
+function fmt(v) { return Number.isInteger(num(v)) ? String(num(v)) : num(v).toFixed(1); }
+
+function renderParams() {
+  const el = document.getElementById("params");
+  if (selected < 0 || !state.recipes[selected]) { el.innerHTML = '<span class="hint">Nothing selected.</span>'; return; }
+  const r = state.recipes[selected];
+  let html = "";
+  const numIn = (key, val, min, max) =>
+    `<label>${key}</label><input type="number" step="1" data-k="${key}" value="${num(val)}" min="${min}" max="${max}">`;
+  if (r.kind === "line") {
+    html = `<div class="row">${numIn("x1", r.x1, -20, 220)}${numIn("y1", r.y1, 0, 240)}</div>` +
+           `<div class="row">${numIn("x2", r.x2, -20, 220)}${numIn("y2", r.y2, 0, 240)}</div>` +
+           `<div class="row"><button id="typeToggle">${r.abs ? "lava (absorb)" : "ricochet"}</button></div>`;
+  } else if (r.kind === "ring") {
+    html = `<div class="row">${numIn("cx", r.cx, 0, 200)}${numIn("cy", r.cy, 0, 240)}${numIn("r", r.r, 5, 120)}</div>` +
+           `<div class="row"><label>gap°</label><input type="number" step="5" data-k="gapDeg" value="${Math.round(r.gapA * 180 / Math.PI)}">` +
+           `<label>size°</label><input type="number" step="5" data-k="sizeDeg" value="${Math.round(r.gapS * 180 / Math.PI)}">` +
+           `<label>segs</label><input type="number" step="1" data-k="segs" value="${r.segs}" min="3" max="32"></div>` +
+           `<div class="row"><button id="typeToggle">${r.abs ? "lava (absorb)" : "ricochet"}</button></div>`;
+  } else if (r.kind === "shields") {
+    html = `<div class="row">${numIn("y1", r.y1, 0, 240)}${numIn("y2", r.y2, 0, 240)}</div>` +
+           `<div class="hint">absorb walls at x=5 and x=195</div>`;
+  }
+  html += `<div class="row"><button id="delBtn">Delete</button></div>`;
+  el.innerHTML = html;
+  el.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => {
+    pushUndo();
+    const k = inp.dataset.k, v = parseFloat(inp.value);
+    if (isNaN(v)) return;
+    if (k === "gapDeg") r.gapA = v * Math.PI / 180;
+    else if (k === "sizeDeg") r.gapS = v * Math.PI / 180;
+    else r[k] = v;
+    refresh(false);
+  }));
+  const tt = document.getElementById("typeToggle");
+  if (tt) tt.addEventListener("click", () => { pushUndo(); r.abs = !r.abs; refresh(); });
+  document.getElementById("delBtn").addEventListener("click", deleteSelected);
+}
+
+function renderObsList() {
+  const el = document.getElementById("obsList");
+  el.innerHTML = "";
+  state.recipes.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "obsRow" + (i === selected ? " sel" : "");
+    let desc;
+    if (r.kind === "line") desc = `line ${fmt(r.x1)},${fmt(r.y1)} → ${fmt(r.x2)},${fmt(r.y2)}`;
+    else if (r.kind === "ring") desc = `ring c(${fmt(r.cx)},${fmt(r.cy)}) r${fmt(r.r)}`;
+    else desc = `shields y ${fmt(r.y1)}–${fmt(r.y2)}`;
+    div.innerHTML = `<span>${desc}</span><span class="tag">${r.abs ? "lava" : r.kind === "shields" ? "lava" : "ric"}</span>`;
+    div.addEventListener("click", () => { selected = i; refresh(false); });
+    el.appendChild(div);
+  });
+}
+
+// ───────────────────────────────────────────────────────────────
+// Swift export
+// ───────────────────────────────────────────────────────────────
+function renderExport() {
+  const lines = [];
+  for (const r of state.recipes) {
+    if (r.kind === "line") {
+      const t = r.abs ? ", .absorb" : "";
+      lines.push(`line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${t}),`);
+    } else if (r.kind === "shields") {
+      lines.push(`// sideShields(${fmt(r.y1)}, ${fmt(r.y2)}) — splice outside the array literal`);
+    }
+  }
+  const rings = state.recipes.filter(r => r.kind === "ring");
+  const shields = state.recipes.filter(r => r.kind === "shields");
+  let body;
+  const indent = "                ";
+  const arr = lines.filter(l => !l.startsWith("//")).map(l => indent + l).join("\n");
+  if (rings.length === 0 && shields.length === 0) {
+    body = `        case ${state.slot}:\n            return Def(targetX: ${fmt(state.tx)}, obstacles: [\n${arr}\n            ])`;
+  } else {
+    const parts = [];
+    for (const r of rings)
+      parts.push(`ring(cx: ${fmt(r.cx)}, cy: ${fmt(r.cy)}, r: ${fmt(r.r)}, gapAngle: ${(r.gapA).toFixed(3)}, gapSize: ${(r.gapS).toFixed(3)}, segs: ${r.segs}${r.abs ? ", .absorb" : ""})`);
+    for (const r of shields)
+      parts.push(`sideShields(${fmt(r.y1)}, ${fmt(r.y2)})`);
+    const plainLines = state.recipes.filter(r => r.kind === "line");
+    if (plainLines.length) {
+      const inner = plainLines.map(r => `line(${fmt(r.x1)}, ${fmt(r.y1)}, ${fmt(r.x2)}, ${fmt(r.y2)}${r.abs ? ", .absorb" : ""})`).join(",\n" + indent + "   ");
+      parts.push(`[\n${indent}   ${inner},\n${indent}]`);
+    }
+    body = `        case ${state.slot}:\n            return Def(targetX: ${fmt(state.tx)}, obstacles:\n${indent}${parts.join("\n" + indent + "+ ")})`;
+  }
+  document.getElementById("exportBox").value = body;
+}
+
+// ───────────────────────────────────────────────────────────────
+// Mouse interaction
+// ───────────────────────────────────────────────────────────────
+function toGame(e) {
+  const rect = board.getBoundingClientRect();
+  return { x: (e.clientX - rect.left) / SCALE, y: SCENE_H - (e.clientY - rect.top) / SCALE };
+}
+function distToSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, len2 = dx * dx + dy * dy;
+  let t = len2 ? ((px - x1) * dx + (py - y1) * dy) / len2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+function hitTest(p) {
+  for (let i = state.recipes.length - 1; i >= 0; i--) {
+    for (const s of flatten([state.recipes[i]]))
+      if (distToSeg(p.x, p.y, s[0], s[1], s[2], s[3]) < 4) return i;
+  }
+  return -1;
+}
+
+let drag = null; // {mode:'new'|'p1'|'p2'|'move'|'ringMove', start, orig}
+board.addEventListener("mousedown", e => {
+  const p = toGame(e);
+  if (tool === "aim") { aimLocked = !aimLocked; return; }
+  if (tool === "line" || tool === "lava") {
+    pushUndo();
+    state.recipes.push({ kind: "line", x1: snap(p.x), y1: snap(p.y), x2: snap(p.x), y2: snap(p.y), abs: tool === "lava" });
+    selected = state.recipes.length - 1;
+    drag = { mode: "p2" };
+    refresh(false);
+    return;
+  }
+  if (tool === "ring") {
+    pushUndo();
+    state.recipes.push({ kind: "ring", cx: snap(p.x), cy: snap(p.y), r: 40, gapA: -Math.PI / 2, gapS: Math.PI / 3, segs: 16, abs: false });
+    selected = state.recipes.length - 1;
+    setTool("select");
+    refresh();
+    return;
+  }
+  // select tool
+  if (selected >= 0) {
+    const r = state.recipes[selected];
+    if (r.kind === "line") {
+      if (Math.hypot(p.x - r.x1, p.y - r.y1) < 5) { pushUndo(); drag = { mode: "p1" }; return; }
+      if (Math.hypot(p.x - r.x2, p.y - r.y2) < 5) { pushUndo(); drag = { mode: "p2" }; return; }
+    }
+    if (r.kind === "ring" && Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return; }
+  }
+  const hit = hitTest(p);
+  selected = hit;
+  if (hit >= 0) { pushUndo(); drag = { mode: "move", last: p }; }
+  refresh(false);
+});
+board.addEventListener("mousemove", e => {
+  const p = toGame(e);
+  if (tool === "aim" && !aimLocked) {
+    let a = Math.atan2(-(p.x - SHIP.x), p.y - SHIP.y);
+    a = Math.max(-AIM_LIMIT, Math.min(AIM_LIMIT, a));
+    aimAngle = a;
+    drawBoard(); drawStrip();
+    return;
+  }
+  if (!drag || selected < 0) return;
+  const r = state.recipes[selected];
+  if (drag.mode === "p1") { r.x1 = snap(p.x); r.y1 = snap(p.y); }
+  else if (drag.mode === "p2") { r.x2 = snap(p.x); r.y2 = snap(p.y); }
+  else if (drag.mode === "ringMove") { r.cx = snap(p.x); r.cy = snap(p.y); }
+  else if (drag.mode === "move") {
+    const dx = p.x - drag.last.x, dy = p.y - drag.last.y;
+    drag.last = p;
+    if (r.kind === "line") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
+    else if (r.kind === "ring") { r.cx += dx; r.cy += dy; }
+    else if (r.kind === "shields") { r.y1 += dy; r.y2 += dy; }
+  }
+  drawBoard(); scheduleSim();
+});
+window.addEventListener("mouseup", () => {
+  if (drag && selected >= 0) {
+    const r = state.recipes[selected];
+    if (r.kind === "line") { r.x1 = snap(r.x1); r.y1 = snap(r.y1); r.x2 = snap(r.x2); r.y2 = snap(r.y2); }
+    if (tool === "line" || tool === "lava") setTool("select");
+    refresh();
+  }
+  drag = null;
+});
+function snap(v) { return Math.round(v); }
+
+// ───────────────────────────────────────────────────────────────
+// Tools / keyboard / undo
+// ───────────────────────────────────────────────────────────────
+const toolButtons = { select: "toolSelect", line: "toolLine", lava: "toolLava", ring: "toolRing", shields: "toolShields", aim: "toolAim" };
+function setTool(t) {
+  if (t === "shields") {
+    pushUndo();
+    state.recipes.push({ kind: "shields", y1: 170, y2: 225, abs: true });
+    selected = state.recipes.length - 1;
+    refresh();
+    return;
+  }
+  tool = t;
+  if (t !== "aim") { aimAngle = null; aimLocked = false; }
+  for (const [k, id] of Object.entries(toolButtons))
+    document.getElementById(id).classList.toggle("active", k === tool);
+  drawBoard();
+}
+for (const [k, id] of Object.entries(toolButtons))
+  document.getElementById(id).addEventListener("click", () => setTool(k));
+
+function pushUndo() {
+  undoStack.push(JSON.stringify(state));
+  if (undoStack.length > 80) undoStack.shift();
+}
+function undo() {
+  if (!undoStack.length) return;
+  state = JSON.parse(undoStack.pop());
+  selected = -1;
+  refresh();
+}
+function deleteSelected() {
+  if (selected < 0) return;
+  pushUndo();
+  state.recipes.splice(selected, 1);
+  selected = -1;
+  refresh();
+}
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "Escape") setTool("select");
+  else if (e.key === "Backspace" || e.key === "Delete") { deleteSelected(); e.preventDefault(); }
+  else if (e.key === "z") undo();
+  else if (selected >= 0 && e.key.startsWith("Arrow")) {
+    pushUndo();
+    const d = e.shiftKey ? 5 : 1;
+    const dx = e.key === "ArrowLeft" ? -d : e.key === "ArrowRight" ? d : 0;
+    const dy = e.key === "ArrowDown" ? -d : e.key === "ArrowUp" ? d : 0;
+    const r = state.recipes[selected];
+    if (r.kind === "line") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
+    else if (r.kind === "ring") { r.cx += dx; r.cy += dy; }
+    else { r.y1 += dy; r.y2 += dy; }
+    refresh(false);
+    e.preventDefault();
+  }
+});
+
+// ───────────────────────────────────────────────────────────────
+// Level load / slot / target / persistence
+// ───────────────────────────────────────────────────────────────
+const sel = document.getElementById("levelSelect");
+LEVELS.forEach(l => {
+  const o = document.createElement("option");
+  o.value = l.n; o.textContent = `Level ${l.n}`;
+  sel.appendChild(o);
+});
+document.getElementById("loadBtn").addEventListener("click", () => {
+  pushUndo();
+  const l = LEVELS[parseInt(sel.value) - 1];
+  state.slot = l.n;
+  state.tx = l.tx;
+  state.recipes = l.obs.map(o => ({ kind: "line", x1: o[0], y1: o[1], x2: o[2], y2: o[3], abs: !!o[4] }));
+  document.getElementById("slotNum").value = l.n;
+  document.getElementById("targetX").value = l.tx;
+  selected = -1;
+  refresh();
+});
+document.getElementById("clearBtn").addEventListener("click", () => {
+  pushUndo(); state.recipes = []; selected = -1; refresh();
+});
+document.getElementById("slotNum").addEventListener("input", e => {
+  state.slot = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
+  refresh(false);
+});
+document.getElementById("targetX").addEventListener("input", e => {
+  state.tx = parseFloat(e.target.value);
+  document.getElementById("targetXVal").textContent = state.tx;
+  drawBoard(); scheduleSim(); renderExport();
+});
+document.getElementById("copyBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("exportBox").value);
+  document.getElementById("copyMsg").textContent = "copied ✓";
+  setTimeout(() => document.getElementById("copyMsg").textContent = "", 1500);
+});
+
+function refresh(recomputeNow = true) {
+  document.getElementById("bandTag").textContent = `band: ${bandMin(state.slot)}+ bounces`;
+  document.getElementById("targetXVal").textContent = state.tx;
+  drawBoard(); renderParams(); renderObsList(); renderExport();
+  if (recomputeNow) computeSolution(); else scheduleSim();
+  try { localStorage.setItem("ricochetEditor", JSON.stringify(state)); } catch (_) {}
+}
+
+// restore
+try {
+  const saved = localStorage.getItem("ricochetEditor");
+  if (saved) state = JSON.parse(saved);
+} catch (_) {}
+document.getElementById("slotNum").value = state.slot;
+document.getElementById("targetX").value = state.tx;
+refresh();
+</script>
+</body>
+</html>
