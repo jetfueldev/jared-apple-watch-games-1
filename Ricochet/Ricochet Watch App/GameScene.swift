@@ -9,6 +9,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         static let void_zone: UInt32 = 8
         static let obstacle: UInt32 = 16
         static let absorb: UInt32 = 32
+        static let portal: UInt32 = 64
     }
 
     private let alienNames = [
@@ -32,6 +33,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private var aimAngle: CGFloat = 0
     private var canFire = true
+    private var lastTeleportTime: TimeInterval = 0
+    private var lastPortalPair = -1
 
     private var countdownArc: SKShapeNode!
     private let countdownTotal: TimeInterval = 12
@@ -97,13 +100,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             let angle = result.solutionAngle ?? 0
             let path = result.path
+            let teleports = result.teleports
 
             // Pause so the level layout can be taken in before the shot
             run(.sequence([
                 .wait(forDuration: 0.8),
                 .run { [weak self] in self?.animateAimTo(angle: Double(angle), duration: 0.35) },
                 .wait(forDuration: 0.5),
-                .run { [weak self] in self?.playPath(path) }
+                .run { [weak self] in self?.playPath(path, teleports: teleports) }
             ]))
         } else {
             aimNode.isHidden = true
@@ -177,7 +181,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         run(.sequence(actions))
     }
 
-    private func playPath(_ path: [CGPoint]) {
+    private func playPath(_ path: [CGPoint], teleports: Set<Int> = []) {
         guard path.count >= 2 else {
             advanceAutoPlay(hit: false)
             return
@@ -198,6 +202,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         for i in 1..<path.count {
             let from = path[i - 1]
             let to = path[i]
+            if teleports.contains(i) {
+                // Portal jump: vanish at the entry, reappear at the exit.
+                actions.append(.run { [weak self] in self?.bounceSparkle(at: from) })
+                actions.append(.fadeOut(withDuration: 0.1))
+                actions.append(.move(to: to, duration: 0))
+                actions.append(.fadeIn(withDuration: 0.1))
+                actions.append(.run { [weak self] in self?.bounceSparkle(at: to) })
+                continue
+            }
             let dist = hypot(to.x - from.x, to.y - from.y)
             let duration = TimeInterval(dist / autoPlayShotSpeed)
             actions.append(.move(to: to, duration: duration))
@@ -386,6 +399,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             obstacleNodes.append(node)
         }
 
+        for bumper in level.bumpers {
+            let node = makeBumperNode(bumper)
+            addChild(node)
+            obstacleNodes.append(node)
+        }
+
+        for (i, portal) in level.portals.enumerated() {
+            let a = makePortalNode(at: portal.a, exit: portal.b, radius: portal.radius, pair: i)
+            let b = makePortalNode(at: portal.b, exit: portal.a, radius: portal.radius, pair: i)
+            addChild(a); addChild(b)
+            obstacleNodes.append(a); obstacleNodes.append(b)
+        }
+
         let alienName = alienNames[level.alienIndex % alienNames.count]
         let texture = SKTexture(imageNamed: alienName)
         let sprite = SKSpriteNode(texture: texture)
@@ -466,6 +492,55 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         container.addChild(line)
 
         return container
+    }
+
+    private func makeBumperNode(_ bumper: Bumper) -> SKNode {
+        let node = SKShapeNode(circleOfRadius: bumper.radius)
+        node.position = bumper.center
+        node.fillColor = SKColor(red: 1.0, green: 0.72, blue: 0.30, alpha: 0.85)
+        node.strokeColor = SKColor(red: 1.0, green: 0.82, blue: 0.45, alpha: 1)
+        node.lineWidth = 1.5
+        node.glowWidth = 2
+
+        let body = SKPhysicsBody(circleOfRadius: bumper.radius)
+        body.categoryBitMask = Category.obstacle
+        body.collisionBitMask = 0
+        body.contactTestBitMask = 0
+        body.friction = 0
+        body.restitution = 1.0
+        body.isDynamic = false
+        node.physicsBody = body
+        return node
+    }
+
+    private func makePortalNode(at center: CGPoint, exit: CGPoint, radius: CGFloat, pair: Int) -> SKNode {
+        let node = SKShapeNode(circleOfRadius: radius)
+        node.position = center
+        node.fillColor = SKColor(red: 0.70, green: 0.53, blue: 1.0, alpha: 0.18)
+        node.strokeColor = SKColor(red: 0.70, green: 0.53, blue: 1.0, alpha: 0.9)
+        node.lineWidth = 2
+        node.glowWidth = 3
+        node.zPosition = 2
+
+        let body = SKPhysicsBody(circleOfRadius: radius)
+        body.categoryBitMask = Category.portal
+        body.collisionBitMask = 0
+        body.contactTestBitMask = Category.shot
+        body.isDynamic = false
+        node.physicsBody = body
+
+        let data = NSMutableDictionary()
+        data["ex"] = exit.x
+        data["ey"] = exit.y
+        data["r"] = radius
+        data["pair"] = pair
+        node.userData = data
+
+        node.run(.repeatForever(.sequence([
+            .fadeAlpha(to: 0.6, duration: 0.9),
+            .fadeAlpha(to: 1.0, duration: 0.9),
+        ])))
+        return node
     }
 
     // MARK: - Ship
@@ -606,6 +681,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func fire() {
         guard canFire, shotNode == nil else { return }
         canFire = false
+        lastPortalPair = -1
 
         let shot = SKShapeNode(circleOfRadius: shotRadius)
         shot.fillColor = SKColor(red: 0.3, green: 1.0, blue: 0.4, alpha: 1)
@@ -618,7 +694,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let body = SKPhysicsBody(circleOfRadius: shotRadius)
         body.categoryBitMask = Category.shot
-        body.contactTestBitMask = Category.target | Category.void_zone | Category.absorb
+        body.contactTestBitMask = Category.target | Category.void_zone | Category.absorb | Category.portal
         body.collisionBitMask = Category.wall | Category.obstacle
         body.friction = 0
         body.restitution = 1.0
@@ -667,10 +743,41 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         if masks == Category.shot | Category.target {
             handleHit()
+        } else if masks == Category.shot | Category.portal {
+            let portalNode = contact.bodyA.categoryBitMask == Category.portal
+                ? contact.bodyA.node : contact.bodyB.node
+            teleport(through: portalNode)
         } else if masks & (Category.void_zone | Category.absorb) != 0 &&
                   masks & Category.shot != 0 {
             handleMiss()
         }
+    }
+
+    private func teleport(through portalNode: SKNode?) {
+        guard let portalNode,
+              let data = portalNode.userData,
+              let shot = shotNode,
+              let body = shot.physicsBody else { return }
+
+        guard let ex = data["ex"] as? CGFloat,
+              let ey = data["ey"] as? CGFloat,
+              let r = data["r"] as? CGFloat else { return }
+
+        // Per-pair cooldown: a portal can't re-trigger itself, but a different
+        // pair fires instantly — that's what makes portal chains work.
+        let pair = data["pair"] as? Int ?? -1
+        let now = CACurrentMediaTime()
+        if pair == lastPortalPair, now - lastTeleportTime < 0.12 { return }
+        lastPortalPair = pair
+        lastTeleportTime = now
+
+        let v = body.velocity
+        let speed = hypot(v.dx, v.dy)
+        guard speed > 0 else { return }
+        let ux = v.dx / speed, uy = v.dy / speed
+
+        // Exit keeping direction, nudged just past the ring edge.
+        shot.position = CGPoint(x: ex + ux * (r + 4), y: ey + uy * (r + 4))
     }
 
     private func handleHit() {

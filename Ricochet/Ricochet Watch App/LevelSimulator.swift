@@ -7,6 +7,8 @@ struct SimulationResult {
     let solutionAngle: CGFloat?
     let bounces: Int
     let path: [CGPoint]
+    /// Indices i where path[i] was reached by a portal jump from path[i-1] (not travel).
+    var teleports: Set<Int> = []
 }
 
 struct SolutionWindow {
@@ -63,19 +65,19 @@ enum LevelSimulator {
         let maxAngle: CGFloat = 2.8
         let step = (maxAngle - minAngle) / CGFloat(angleSteps)
 
-        var best: (angle: CGFloat, bounces: Int, path: [CGPoint])? = nil
+        var best: (angle: CGFloat, result: RayResult)? = nil
 
         for i in 0...angleSteps {
             let angle = minAngle + step * CGFloat(i)
             let result = castRay(angle: angle, level: level)
             if result.hit {
                 if let current = best {
-                    if result.bounces < current.bounces ||
-                       (result.bounces == current.bounces && pathLength(result.path) < pathLength(current.path)) {
-                        best = (angle, result.bounces, result.path)
+                    if result.bounces < current.result.bounces ||
+                       (result.bounces == current.result.bounces && pathLength(result) < pathLength(current.result)) {
+                        best = (angle, result)
                     }
                 } else {
-                    best = (angle, result.bounces, result.path)
+                    best = (angle, result)
                 }
             }
         }
@@ -85,8 +87,9 @@ enum LevelSimulator {
                 level: level.number,
                 solvable: true,
                 solutionAngle: best.angle,
-                bounces: best.bounces,
-                path: best.path
+                bounces: best.result.bounces,
+                path: best.result.path,
+                teleports: best.result.teleports
             )
         }
 
@@ -140,9 +143,10 @@ enum LevelSimulator {
         return SolutionMap(level: level.number, samples: samples, windows: windows)
     }
 
-    private static func pathLength(_ path: [CGPoint]) -> CGFloat {
+    private static func pathLength(_ result: RayResult) -> CGFloat {
+        let path = result.path
         var total: CGFloat = 0
-        for i in 1..<path.count {
+        for i in 1..<path.count where !result.teleports.contains(i) {
             total += hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y)
         }
         return total
@@ -152,7 +156,10 @@ enum LevelSimulator {
         let hit: Bool
         let bounces: Int
         let path: [CGPoint]
+        var teleports: Set<Int> = []
     }
+
+    private enum HitKind { case wall, bumper, portal }
 
     private static func castRay(angle: CGFloat, level: Level) -> RayResult {
         let dx = -sin(angle)
@@ -164,24 +171,17 @@ enum LevelSimulator {
         )
         var dir = CGPoint(x: dx, y: dy)
         var path: [CGPoint] = [pos]
+        var teleports: Set<Int> = []
 
-        let sideWalls: [(CGPoint, CGPoint, Bool)] = [
+        // (a, b, canBounce): side walls bounce, top/bottom void absorbs.
+        var walls: [(CGPoint, CGPoint, Bool)] = [
             (CGPoint(x: 0, y: 0), CGPoint(x: 0, y: sceneH), true),
             (CGPoint(x: sceneW, y: 0), CGPoint(x: sceneW, y: sceneH), true),
-        ]
-
-        let voidWalls: [(CGPoint, CGPoint, Bool)] = [
             (CGPoint(x: 0, y: sceneH), CGPoint(x: sceneW, y: sceneH), false),
             (CGPoint(x: 0, y: 0), CGPoint(x: sceneW, y: 0), false),
         ]
-
-        var allWalls: [(CGPoint, CGPoint, Bool)] = []
-        allWalls.append(contentsOf: sideWalls)
-        allWalls.append(contentsOf: voidWalls)
-
         for obstacle in level.obstacles {
-            let canBounce = obstacle.type == .ricochet
-            allWalls.append((obstacle.from, obstacle.to, canBounce))
+            walls.append((obstacle.from, obstacle.to, obstacle.type == .ricochet))
         }
 
         for bounce in 0...maxBounces {
@@ -190,57 +190,80 @@ enum LevelSimulator {
                 center: level.targetPosition, radius: targetRadius
             )
 
-            var closestT: CGFloat = .greatestFiniteMagnitude
-            var closestWallIndex = -1
+            var closest: CGFloat = .greatestFiniteMagnitude
+            var kind: HitKind? = nil
+            var hitWall: (CGPoint, CGPoint, Bool)? = nil
+            var hitBumper: Bumper? = nil
+            var portalExit: (center: CGPoint, radius: CGFloat)? = nil
 
-            for (i, wall) in allWalls.enumerated() {
-                if let t = raySegmentIntersection(
-                    origin: pos, dir: dir,
-                    a: wall.0, b: wall.1
-                ), t > 0.1 && t < closestT {
-                    closestT = t
-                    closestWallIndex = i
+            for wall in walls {
+                if let t = raySegmentIntersection(origin: pos, dir: dir, a: wall.0, b: wall.1),
+                   t > 0.1, t < closest {
+                    closest = t; kind = .wall; hitWall = wall
+                }
+            }
+            for bumper in level.bumpers {
+                if let t = rayCircleIntersection(origin: pos, dir: dir, center: bumper.center, radius: bumper.radius),
+                   t > 0.1, t < closest {
+                    closest = t; kind = .bumper; hitBumper = bumper
+                }
+            }
+            for portal in level.portals {
+                if let t = rayCircleIntersection(origin: pos, dir: dir, center: portal.a, radius: portal.radius),
+                   t > 0.1, t < closest {
+                    closest = t; kind = .portal; portalExit = (portal.b, portal.radius)
+                }
+                if let t = rayCircleIntersection(origin: pos, dir: dir, center: portal.b, radius: portal.radius),
+                   t > 0.1, t < closest {
+                    closest = t; kind = .portal; portalExit = (portal.a, portal.radius)
                 }
             }
 
-            if let hitT = targetHitT, hitT > 0.1 && hitT < closestT {
-                let targetPt = CGPoint(
-                    x: pos.x + dir.x * hitT,
-                    y: pos.y + dir.y * hitT
-                )
-                path.append(targetPt)
-                return RayResult(hit: true, bounces: bounce, path: path)
+            if let hitT = targetHitT, hitT > 0.1, hitT < closest {
+                path.append(CGPoint(x: pos.x + dir.x * hitT, y: pos.y + dir.y * hitT))
+                return RayResult(hit: true, bounces: bounce, path: path, teleports: teleports)
             }
 
-            guard closestWallIndex >= 0 else {
-                return RayResult(hit: false, bounces: bounce, path: path)
+            guard let kind else {
+                return RayResult(hit: false, bounces: bounce, path: path, teleports: teleports)
             }
 
-            let wall = allWalls[closestWallIndex]
-            let canBounce = wall.2
+            switch kind {
+            case .wall:
+                let wall = hitWall!
+                if !wall.2 {
+                    path.append(CGPoint(x: pos.x + dir.x * closest, y: pos.y + dir.y * closest))
+                    return RayResult(hit: false, bounces: bounce, path: path, teleports: teleports)
+                }
+                pos = CGPoint(x: pos.x + dir.x * closest, y: pos.y + dir.y * closest)
+                let wdx = wall.1.x - wall.0.x, wdy = wall.1.y - wall.0.y
+                let len = hypot(wdx, wdy)
+                let nx = -wdy / len, ny = wdx / len
+                let dot = dir.x * nx + dir.y * ny
+                dir = CGPoint(x: dir.x - 2 * dot * nx, y: dir.y - 2 * dot * ny)
+                path.append(pos)
 
-            if !canBounce {
-                return RayResult(hit: false, bounces: bounce, path: path)
+            case .bumper:
+                let bumper = hitBumper!
+                pos = CGPoint(x: pos.x + dir.x * closest, y: pos.y + dir.y * closest)
+                let nx = (pos.x - bumper.center.x) / bumper.radius
+                let ny = (pos.y - bumper.center.y) / bumper.radius
+                let dot = dir.x * nx + dir.y * ny
+                dir = CGPoint(x: dir.x - 2 * dot * nx, y: dir.y - 2 * dot * ny)
+                path.append(pos)
+
+            case .portal:
+                let exit = portalExit!
+                pos = CGPoint(x: pos.x + dir.x * closest, y: pos.y + dir.y * closest)
+                path.append(pos)
+                pos = CGPoint(x: exit.center.x + dir.x * (exit.radius + 1),
+                              y: exit.center.y + dir.y * (exit.radius + 1))
+                path.append(pos)
+                teleports.insert(path.count - 1)
             }
-
-            let hitPoint = CGPoint(
-                x: pos.x + dir.x * closestT,
-                y: pos.y + dir.y * closestT
-            )
-
-            let wallDx = wall.1.x - wall.0.x
-            let wallDy = wall.1.y - wall.0.y
-            let wallLen = hypot(wallDx, wallDy)
-            let nx = -wallDy / wallLen
-            let ny = wallDx / wallLen
-
-            let dot = dir.x * nx + dir.y * ny
-            dir = CGPoint(x: dir.x - 2 * dot * nx, y: dir.y - 2 * dot * ny)
-            pos = hitPoint
-            path.append(pos)
         }
 
-        return RayResult(hit: false, bounces: maxBounces, path: path)
+        return RayResult(hit: false, bounces: maxBounces, path: path, teleports: teleports)
     }
 
     private static func raySegmentIntersection(

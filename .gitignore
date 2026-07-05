@@ -29,3 +29,8 @@ Package.resolved
 
 # Claude Code
 .claude/settings.local.json
+
+# Ricochet level-tool generated search dumps (regenerable by rerunning the scripts)
+Ricochet/Tools/pool*.json
+Ricochet/Tools/genset-out.json
+Ricochet/Tools/misdirect-out.json

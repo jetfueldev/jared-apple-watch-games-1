@@ -53,6 +53,15 @@
   .collChip .b { color: var(--ric); }
   .collChip .x { color: var(--dim); padding: 0 3px; border-radius: 3px; }
   .collChip .x:hover { background: var(--bad); color: #fff; }
+  #levelGrid { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .zoneRow { display: flex; align-items: center; gap: 4px; }
+  .zoneLab { width: 20px; text-align: center; font-size: 13px; }
+  .lvlBtn { width: 26px; height: 24px; padding: 0; font-size: 11px; background: #21262d;
+            border: 1px solid var(--border); border-radius: 4px; color: var(--text); cursor: pointer; }
+  .lvlBtn:hover { border-color: var(--accent); }
+  .lvlBtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .lvlBtn.edited { border-color: var(--warn); color: var(--warn); }
+  .lvlBtn.edited.on { color: #fff; }
   kbd { background: #21262d; border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; font-size: 11px; }
   .hint { color: var(--dim); font-size: 11px; }
 </style>
@@ -69,12 +78,16 @@
 
 <div id="right">
   <div class="card">
-    <h3>Level</h3>
+    <h3>Levels</h3>
     <div class="row">
-      <select id="levelSelect"></select>
-      <button id="loadBtn">Load</button>
-      <label>slot #</label><input id="slotNum" type="number" min="1" max="50" value="1">
+      <span class="tag" id="openTag">editing —</span>
       <span class="tag" id="bandTag"></span>
+    </div>
+    <div id="levelGrid"></div>
+    <div class="row">
+      <button id="saveSlotBtn">💾 Save</button>
+      <button id="addLevelBtn">+ Add board</button>
+      <span class="hint" id="libMsg"></span>
     </div>
     <div class="row">
       <button id="suggestBtn">Random board</button>
@@ -105,10 +118,12 @@
       <button id="toolLava">+ Lava line</button>
       <button id="toolBox">+ Box</button>
       <button id="toolRing">+ Ring</button>
+      <button id="toolBumper">+ Bumper</button>
+      <button id="toolPortal">+ Portal</button>
       <button id="toolShields">+ Shields</button>
       <button id="toolAim">🎯 Aim</button>
     </div>
-    <div class="hint">Line/Lava/Box: drag on board. Ring: click center, drag rim handle to resize. Aim: move mouse to aim, click to lock. <kbd>esc</kbd> select · <kbd>⌫</kbd> delete · arrows nudge · <kbd>z</kbd> undo</div>
+    <div class="hint">Line/Lava/Box: drag on board. Ring: click center, drag rim handle to resize. Bumper: click to place a peg, drag blue handle to resize. Portal: click to place pair A↔B, drag A/B to move, blue handle resizes. Aim: move mouse to aim, click to lock. <kbd>esc</kbd> select · <kbd>⌫</kbd> delete · arrows nudge · <kbd>z</kbd> undo</div>
   </div>
 
   <div class="card">
@@ -122,13 +137,20 @@
   </div>
 
   <div class="card">
-    <h3>Collection</h3>
+    <h3>Library</h3>
     <div class="row">
-      <button id="addLevelBtn">+ Add this board</button>
-      <button id="exportAllBtn">Export all →</button>
-      <span class="tag" id="collCount">0 saved</span>
+      <button id="exportEditedBtn">Export edited →</button>
+      <button id="resetLibBtn">Reset to stock 50</button>
+      <span class="tag" id="libCount">50 boards · 0 edited</span>
     </div>
-    <div id="collList" class="hint">No boards saved yet — design or randomize one, then add it.</div>
+    <div class="hint" id="serverTag">● local only — run <kbd>node Ricochet/editor-server.js</kbd> to sync edits to a file Claude reads</div>
+    <div class="hint">Edits are saved per slot and persist across reloads. Edited boards are starred; "Export edited" emits just those for splicing into the game.</div>
+    <div class="row" style="margin-top:8px">
+      <button id="copyCollBtn">Copy library (JSON)</button>
+      <button id="importCollBtn">Import JSON ↓</button>
+      <span class="hint" id="collMsg"></span>
+    </div>
+    <textarea id="importBox" placeholder="Paste a boards JSON array here, then click Import JSON — boards append to the end of the library" style="height:90px;display:none"></textarea>
   </div>
 
   <div class="card">
@@ -219,7 +241,8 @@ let aimAngle = null, aimLocked = false;
 let undoStack = [];
 let solMap = null, bestPath = null;
 let simTimer = null;
-let collection = [];   // saved boards: { tx, recipes, minB, total }
+let library = [];      // the editable board set: { tx, recipes, edited }
+let openSlot = -1;     // index into library of the board currently on the canvas
 
 const board = document.getElementById("board"), bctx = board.getContext("2d");
 const strip = document.getElementById("strip"), sctx = strip.getContext("2d");
@@ -276,7 +299,9 @@ function rayCircle(ox, oy, dx, dy, cx, cy, r) {
   if (t2 > 0.1) return t2;
   return null;
 }
-function castRay(angle, segs, tx) {
+// geo: { segs:[[x1,y1,x2,y2,abs]], bumpers:[{cx,cy,r}], portals:[{ax,ay,bx,by,r}] }
+function castRay(angle, geo, tx) {
+  const segs = geo.segs, bumpers = geo.bumpers || [], portals = geo.portals || [];
   const dx0 = -Math.sin(angle), dy0 = Math.cos(angle);
   let px = SHIP.x + dx0 * SPAWN_DIST, py = SHIP.y + dy0 * SPAWN_DIST;
   let dx = dx0, dy = dy0;
@@ -289,25 +314,48 @@ function castRay(angle, segs, tx) {
   ];
   for (let bounce = 0; bounce <= MAX_BOUNCES; bounce++) {
     const tHit = rayCircle(px, py, dx, dy, tx, TARGET_Y, TARGET_R);
-    let closest = Infinity, wi = -1;
+    let closest = Infinity, hitType = null, hitData = null;
     for (let i = 0; i < walls.length; i++) {
       const w = walls[i];
       const t = raySeg(px, py, dx, dy, w[0], w[1], w[2], w[3]);
-      if (t !== null && t > 0.1 && t < closest) { closest = t; wi = i; }
+      if (t !== null && t > 0.1 && t < closest) { closest = t; hitType = "wall"; hitData = w; }
+    }
+    for (const b of bumpers) {
+      const t = rayCircle(px, py, dx, dy, b.cx, b.cy, b.r);
+      if (t !== null && t > 0.1 && t < closest) { closest = t; hitType = "bump"; hitData = b; }
+    }
+    for (const p of portals) {
+      const tA = rayCircle(px, py, dx, dy, p.ax, p.ay, p.r);
+      if (tA !== null && tA > 0.1 && tA < closest) { closest = tA; hitType = "portal"; hitData = { ex: p.bx, ey: p.by, r: p.r }; }
+      const tB = rayCircle(px, py, dx, dy, p.bx, p.by, p.r);
+      if (tB !== null && tB > 0.1 && tB < closest) { closest = tB; hitType = "portal"; hitData = { ex: p.ax, ey: p.ay, r: p.r }; }
     }
     if (tHit !== null && tHit > 0.1 && tHit < closest) {
       path.push([px + dx * tHit, py + dy * tHit]);
       return { hit: true, bounces: bounce, path };
     }
-    if (wi < 0) return { hit: false, bounces: bounce, path };
-    const w = walls[wi];
-    if (!w[4]) { path.push([px + dx * closest, py + dy * closest]); return { hit: false, bounces: bounce, path }; }
-    px += dx * closest; py += dy * closest;
-    const wdx = w[2] - w[0], wdy = w[3] - w[1], len = Math.hypot(wdx, wdy);
-    const nx = -wdy / len, ny = wdx / len;
-    const dot = dx * nx + dy * ny;
-    dx -= 2 * dot * nx; dy -= 2 * dot * ny;
-    path.push([px, py]);
+    if (!hitType) return { hit: false, bounces: bounce, path };
+    if (hitType === "wall") {
+      const w = hitData;
+      if (!w[4]) { path.push([px + dx * closest, py + dy * closest]); return { hit: false, bounces: bounce, path }; }
+      px += dx * closest; py += dy * closest;
+      const wdx = w[2] - w[0], wdy = w[3] - w[1], len = Math.hypot(wdx, wdy);
+      const nx = -wdy / len, ny = wdx / len;
+      const dot = dx * nx + dy * ny;
+      dx -= 2 * dot * nx; dy -= 2 * dot * ny;
+      path.push([px, py]);
+    } else if (hitType === "bump") {
+      px += dx * closest; py += dy * closest;
+      const nx = (px - hitData.cx) / hitData.r, ny = (py - hitData.cy) / hitData.r;
+      const dot = dx * nx + dy * ny;
+      dx -= 2 * dot * nx; dy -= 2 * dot * ny;
+      path.push([px, py]);
+    } else { // portal — enter, exit at linked ring keeping direction
+      px += dx * closest; py += dy * closest;
+      path.push([px, py]);
+      px = hitData.ex + dx * (hitData.r + 1); py = hitData.ey + dy * (hitData.r + 1);
+      path.push([px, py, "tp"]);
+    }
   }
   return { hit: false, bounces: MAX_BOUNCES, path };
 }
@@ -319,21 +367,35 @@ function bandMin(n) {
   if (n <= 3) return 0; if (n <= 10) return 1; if (n <= 20) return 2;
   if (n <= 30) return 3; if (n <= 40) return 4; return 5;
 }
+// Build the geometry castRay consumes: line segments + reflective circles + portal pairs.
+function buildGeo(recipes) {
+  return {
+    segs: flatten(recipes),
+    bumpers: recipes.filter(r => r.kind === "bumper").map(r => ({ cx: r.cx, cy: r.cy, r: r.r })),
+    portals: recipes.filter(r => r.kind === "portal").map(r => ({ ax: r.ax, ay: r.ay, bx: r.bx, by: r.by, r: r.r })),
+  };
+}
+function pathLen(path) {
+  let len = 0;
+  for (let k = 1; k < path.length; k++) {
+    if (path[k][2] === "tp") continue; // teleport gap is not travel
+    len += Math.hypot(path[k][0] - path[k-1][0], path[k][1] - path[k-1][1]);
+  }
+  return len;
+}
 // Pure: sweep a board and return its solution map + best path. No side effects.
 function solveBoard(recipes, tx) {
-  const segs = flatten(recipes);
+  const geo = buildGeo(recipes);
   const stepDeg = 0.1, lo = -160, hi = 160;
   const count = Math.round((hi - lo) / stepDeg);
   const samples = new Int8Array(count + 1).fill(-1);
   let best = null, bestLen = Infinity;
   for (let i = 0; i <= count; i++) {
     const deg = lo + i * stepDeg;
-    const r = castRay(deg * Math.PI / 180, segs, tx);
+    const r = castRay(deg * Math.PI / 180, geo, tx);
     if (r.hit) {
       samples[i] = Math.min(r.bounces, 99);
-      let len = 0;
-      for (let k = 1; k < r.path.length; k++)
-        len += Math.hypot(r.path[k][0] - r.path[k-1][0], r.path[k][1] - r.path[k-1][1]);
+      const len = pathLen(r.path);
       if (!best || r.bounces < best.bounces || (r.bounces === best.bounces && len < bestLen)) {
         best = r; bestLen = len;
       }
@@ -433,12 +495,39 @@ function drawBoard() {
       dot(rec.gapA - rec.gapS / 2, "#79c0ff", 5);          // cyan: widen/narrow (edges)
       dot(rec.gapA + rec.gapS / 2, "#79c0ff", 5);
     }
+    if (rec.kind === "bumper") {
+      bctx.beginPath(); bctx.arc(X(rec.cx), Y(rec.cy), rec.r * SCALE, 0, 7);
+      bctx.fillStyle = isSel ? "rgba(255,214,107,.30)" : "rgba(255,184,77,.20)"; bctx.fill();
+      bctx.strokeStyle = isSel ? "#ffd86b" : "#ffb84d"; bctx.lineWidth = isSel ? 4 : 3; bctx.stroke();
+      if (isSel) {
+        bctx.beginPath(); bctx.arc(X(rec.cx), Y(rec.cy), 5, 0, 7); bctx.fillStyle = "#fff"; bctx.fill();
+        bctx.beginPath(); bctx.arc(X(rec.cx + rec.r), Y(rec.cy), 5, 0, 7); bctx.fillStyle = "#79c0ff"; bctx.fill();
+      }
+    }
+    if (rec.kind === "portal") {
+      const ends = [["A", rec.ax, rec.ay], ["B", rec.bx, rec.by]];
+      bctx.strokeStyle = isSel ? "#d0a9ff" : "#b388ff"; bctx.fillStyle = "rgba(179,136,255,.18)";
+      bctx.setLineDash([4, 4]); bctx.lineWidth = 1.5;
+      bctx.beginPath(); bctx.moveTo(X(rec.ax), Y(rec.ay)); bctx.lineTo(X(rec.bx), Y(rec.by)); bctx.stroke();
+      bctx.setLineDash([]);
+      for (const [lab, ex, ey] of ends) {
+        bctx.beginPath(); bctx.arc(X(ex), Y(ey), rec.r * SCALE, 0, 7);
+        bctx.fillStyle = "rgba(179,136,255,.18)"; bctx.fill();
+        bctx.strokeStyle = isSel ? "#d0a9ff" : "#b388ff"; bctx.lineWidth = isSel ? 4 : 3; bctx.stroke();
+        bctx.fillStyle = isSel ? "#d0a9ff" : "#b388ff"; bctx.font = "11px monospace";
+        bctx.fillText(lab, X(ex), Y(ey));
+      }
+      if (isSel) {
+        for (const [, ex, ey] of ends) { bctx.beginPath(); bctx.arc(X(ex), Y(ey), 5, 0, 7); bctx.fillStyle = "#fff"; bctx.fill(); }
+        bctx.beginPath(); bctx.arc(X(rec.ax + rec.r), Y(rec.ay), 5, 0, 7); bctx.fillStyle = "#79c0ff"; bctx.fill();
+      }
+    }
   });
   // best path (faint)
   if (bestPath && showBest) drawPath(bestPath, "rgba(139,148,158,.45)", 1.5, true);
   // aim ray
   if (aimAngle !== null) {
-    const r = castRay(aimAngle, flatten(state.recipes), state.tx);
+    const r = castRay(aimAngle, buildGeo(state.recipes), state.tx);
     drawPath(r.path, r.hit ? "rgba(86,211,100,.9)" : "rgba(248,81,73,.85)", 2, false);
   }
 }
@@ -448,7 +537,10 @@ function drawPath(path, color, width, dashed) {
   bctx.setLineDash(dashed ? [6, 5] : []);
   bctx.beginPath();
   bctx.moveTo(X(path[0][0]), Y(path[0][1]));
-  for (let i = 1; i < path.length; i++) bctx.lineTo(X(path[i][0]), Y(path[i][1]));
+  for (let i = 1; i < path.length; i++) {
+    if (path[i][2] === "tp") bctx.moveTo(X(path[i][0]), Y(path[i][1])); // teleport: lift pen
+    else bctx.lineTo(X(path[i][0]), Y(path[i][1]));
+  }
   bctx.stroke(); bctx.setLineDash([]);
 }
 
@@ -526,6 +618,13 @@ function renderParams() {
   } else if (r.kind === "shields") {
     html = `<div class="row">${numIn("y1", r.y1, 0, 240)}${numIn("y2", r.y2, 0, 240)}</div>` +
            `<div class="hint">absorb walls at x=5 and x=195</div>`;
+  } else if (r.kind === "bumper") {
+    html = `<div class="row">${numIn("cx", r.cx, 0, 200)}${numIn("cy", r.cy, 0, 240)}${numIn("r", r.r, 6, 40)}</div>` +
+           `<div class="hint">round peg — ball caroms off the curved surface</div>`;
+  } else if (r.kind === "portal") {
+    html = `<div class="row">${numIn("ax", r.ax, 0, 200)}${numIn("ay", r.ay, 0, 240)}</div>` +
+           `<div class="row">${numIn("bx", r.bx, 0, 200)}${numIn("by", r.by, 0, 240)}${numIn("r", r.r, 6, 24)}</div>` +
+           `<div class="hint">enter A → exit B (same direction), and vice-versa</div>`;
   }
   html += `<div class="row"><button id="delBtn">Delete</button></div>`;
   el.innerHTML = html;
@@ -553,8 +652,11 @@ function renderObsList() {
     if (r.kind === "line") desc = `line ${fmt(r.x1)},${fmt(r.y1)} → ${fmt(r.x2)},${fmt(r.y2)}`;
     else if (r.kind === "box") desc = `box ${fmt(r.x1)},${fmt(r.y1)} → ${fmt(r.x2)},${fmt(r.y2)}`;
     else if (r.kind === "ring") desc = `ring c(${fmt(r.cx)},${fmt(r.cy)}) r${fmt(r.r)}`;
+    else if (r.kind === "bumper") desc = `bumper c(${fmt(r.cx)},${fmt(r.cy)}) r${fmt(r.r)}`;
+    else if (r.kind === "portal") desc = `portal A(${fmt(r.ax)},${fmt(r.ay)}) ↔ B(${fmt(r.bx)},${fmt(r.by)})`;
     else desc = `shields y ${fmt(r.y1)}–${fmt(r.y2)}`;
-    div.innerHTML = `<span>${desc}</span><span class="tag">${r.abs ? "lava" : r.kind === "shields" ? "lava" : "ric"}</span>`;
+    const tag = r.kind === "bumper" ? "peg" : r.kind === "portal" ? "warp" : (r.abs || r.kind === "shields") ? "lava" : "ric";
+    div.innerHTML = `<span>${desc}</span><span class="tag">${tag}</span>`;
     div.addEventListener("click", () => { selected = i; refresh(false); });
     el.appendChild(div);
   });
@@ -635,9 +737,43 @@ function hitTest(p) {
 }
 
 let drag = null; // {mode:'new'|'p1'|'p2'|'move'|'ringMove', start, orig}
+
+// Grab an existing object or handle under the cursor — works in ANY tool, so
+// you never have to switch back to Select just to tweak something. Returns
+// true if it grabbed something (caller should stop).
+function tryGrab(p) {
+  if (selected >= 0) {                          // handles of the selected object
+    const r = state.recipes[selected];
+    if (r.kind === "line" || r.kind === "box") {
+      if (Math.hypot(p.x - r.x1, p.y - r.y1) < 5) { pushUndo(); drag = { mode: "p1" }; return true; }
+      if (Math.hypot(p.x - r.x2, p.y - r.y2) < 5) { pushUndo(); drag = { mode: "p2" }; return true; }
+    }
+    if (r.kind === "ring") {
+      const onRim = ang => Math.hypot(p.x - (r.cx + r.r * Math.cos(ang)), p.y - (r.cy + r.r * Math.sin(ang))) < 7;
+      if (onRim(r.gapA - r.gapS / 2) || onRim(r.gapA + r.gapS / 2)) { pushUndo(); drag = { mode: "gapWidth" }; return true; }
+      if (onRim(r.gapA))           { pushUndo(); drag = { mode: "gapRotate" }; return true; }
+      if (onRim(r.gapA + Math.PI)) { pushUndo(); drag = { mode: "ringRadius" }; return true; }
+      if (Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return true; }
+    }
+    if (r.kind === "bumper") {
+      if (Math.hypot(p.x - (r.cx + r.r), p.y - r.cy) < 7) { pushUndo(); drag = { mode: "bumpRadius" }; return true; }
+      if (Math.hypot(p.x - r.cx, p.y - r.cy) < r.r + 4) { pushUndo(); drag = { mode: "bumpMove", last: p }; return true; }
+    }
+    if (r.kind === "portal") {
+      if (Math.hypot(p.x - (r.ax + r.r), p.y - r.ay) < 7) { pushUndo(); drag = { mode: "portRadius" }; return true; }
+      if (Math.hypot(p.x - r.ax, p.y - r.ay) < r.r + 3) { pushUndo(); drag = { mode: "portA", last: p }; return true; }
+      if (Math.hypot(p.x - r.bx, p.y - r.by) < r.r + 3) { pushUndo(); drag = { mode: "portB", last: p }; return true; }
+    }
+  }
+  const hit = hitTest(p);                        // body of any object
+  if (hit >= 0) { selected = hit; pushUndo(); drag = { mode: "move", last: p }; refresh(false); return true; }
+  return false;
+}
+
 board.addEventListener("mousedown", e => {
   const p = toGame(e);
   if (tool === "aim") { aimLocked = !aimLocked; return; }
+  if (tryGrab(p)) return;                         // editing an existing object beats drawing a new one
   if (tool === "line" || tool === "lava") {
     pushUndo();
     state.recipes.push({ kind: "line", x1: snap(p.x), y1: snap(p.y), x2: snap(p.x), y2: snap(p.y), abs: tool === "lava" });
@@ -662,24 +798,23 @@ board.addEventListener("mousedown", e => {
     refresh();
     return;
   }
-  // select tool
-  if (selected >= 0) {
-    const r = state.recipes[selected];
-    if (r.kind === "line" || r.kind === "box") {
-      if (Math.hypot(p.x - r.x1, p.y - r.y1) < 5) { pushUndo(); drag = { mode: "p1" }; return; }
-      if (Math.hypot(p.x - r.x2, p.y - r.y2) < 5) { pushUndo(); drag = { mode: "p2" }; return; }
-    }
-    if (r.kind === "ring") {
-      const onRim = ang => Math.hypot(p.x - (r.cx + r.r * Math.cos(ang)), p.y - (r.cy + r.r * Math.sin(ang))) < 7;
-      if (onRim(r.gapA - r.gapS / 2) || onRim(r.gapA + r.gapS / 2)) { pushUndo(); drag = { mode: "gapWidth" }; return; }
-      if (onRim(r.gapA))         { pushUndo(); drag = { mode: "gapRotate" }; return; }
-      if (onRim(r.gapA + Math.PI)) { pushUndo(); drag = { mode: "ringRadius" }; return; }
-      if (Math.hypot(p.x - r.cx, p.y - r.cy) < 6) { pushUndo(); drag = { mode: "ringMove" }; return; }
-    }
+  if (tool === "bumper") {
+    pushUndo();
+    state.recipes.push({ kind: "bumper", cx: snap(p.x), cy: snap(p.y), r: 16 });
+    selected = state.recipes.length - 1;
+    setTool("select");
+    refresh();
+    return;
   }
-  const hit = hitTest(p);
-  selected = hit;
-  if (hit >= 0) { pushUndo(); drag = { mode: "move", last: p }; }
+  if (tool === "portal") {
+    pushUndo();
+    state.recipes.push({ kind: "portal", ax: snap(p.x), ay: snap(p.y), bx: snap(p.x) + 40, by: snap(p.y), r: 12 });
+    selected = state.recipes.length - 1;
+    setTool("select");
+    refresh();
+    return;
+  }
+  selected = -1;                                  // empty space in Select mode → deselect
   refresh(false);
 });
 board.addEventListener("mousemove", e => {
@@ -703,12 +838,19 @@ board.addEventListener("mousemove", e => {
     d = Math.atan2(Math.sin(d), Math.cos(d));        // wrap to [-π,π]
     r.gapS = Math.min(Math.PI * 1.9, Math.max(Math.PI / 18, snapDeg(2 * Math.abs(d))));
   }
+  else if (drag.mode === "bumpMove") { r.cx = snap(p.x); r.cy = snap(p.y); }
+  else if (drag.mode === "bumpRadius") { r.r = Math.max(6, snap(Math.hypot(p.x - r.cx, p.y - r.cy))); }
+  else if (drag.mode === "portA") { r.ax = snap(p.x); r.ay = snap(p.y); }
+  else if (drag.mode === "portB") { r.bx = snap(p.x); r.by = snap(p.y); }
+  else if (drag.mode === "portRadius") { r.r = Math.max(6, snap(Math.hypot(p.x - r.ax, p.y - r.ay))); }
   else if (drag.mode === "move") {
     const dx = p.x - drag.last.x, dy = p.y - drag.last.y;
     drag.last = p;
     if (r.kind === "line" || r.kind === "box") { r.x1 += dx; r.y1 += dy; r.x2 += dx; r.y2 += dy; }
     else if (r.kind === "ring") { r.cx += dx; r.cy += dy; }
     else if (r.kind === "shields") { r.y1 += dy; r.y2 += dy; }
+    else if (r.kind === "bumper") { r.cx += dx; r.cy += dy; }
+    else if (r.kind === "portal") { r.ax += dx; r.ay += dy; r.bx += dx; r.by += dy; }
   }
   drawBoard(); scheduleSim();
 });
@@ -728,7 +870,7 @@ function snapDeg(a) { return Math.round(a / FIVE_DEG) * FIVE_DEG; }  // snap ang
 // ───────────────────────────────────────────────────────────────
 // Tools / keyboard / undo
 // ───────────────────────────────────────────────────────────────
-const toolButtons = { select: "toolSelect", line: "toolLine", lava: "toolLava", box: "toolBox", ring: "toolRing", shields: "toolShields", aim: "toolAim" };
+const toolButtons = { select: "toolSelect", line: "toolLine", lava: "toolLava", box: "toolBox", ring: "toolRing", bumper: "toolBumper", portal: "toolPortal", shields: "toolShields", aim: "toolAim" };
 function setTool(t) {
   if (t === "shields") {
     pushUndo();
@@ -785,29 +927,100 @@ window.addEventListener("keydown", e => {
 // ───────────────────────────────────────────────────────────────
 // Level load / slot / target / persistence
 // ───────────────────────────────────────────────────────────────
-const sel = document.getElementById("levelSelect");
-LEVELS.forEach(l => {
-  const o = document.createElement("option");
-  o.value = l.n; o.textContent = `Level ${l.n}`;
-  sel.appendChild(o);
-});
-document.getElementById("loadBtn").addEventListener("click", () => {
+const ZONE_EMOJI = ["🌍", "🌙", "⭐", "🪐", "☀️"];
+const SERVER_BASE = location.protocol === "file:" ? "http://localhost:8777" : "";
+let serverOK = false;
+function setServerTag(ok) {
+  const e = document.getElementById("serverTag");
+  if (!e) return;
+  e.innerHTML = ok
+    ? "● syncing to <kbd>Ricochet/editor-library.json</kbd> — Claude sees every save"
+    : "● local only — run <kbd>node Ricochet/editor-server.js</kbd> to sync edits to a file Claude reads";
+}
+function pushToServer() {
+  fetch(SERVER_BASE + "/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(library),
+  }).then(() => { if (!serverOK) { serverOK = true; setServerTag(true); } })
+    .catch(() => { if (serverOK) { serverOK = false; setServerTag(false); } });
+}
+function saveLibrary() {
+  try { localStorage.setItem("ricochetLibrary", JSON.stringify(library)); } catch (_) {}
+  pushToServer();
+}
+function seedLibrary() {
+  library = LEVELS.map(l => ({
+    tx: l.tx,
+    recipes: l.obs.map(o => ({ kind: "line", x1: o[0], y1: o[1], x2: o[2], y2: o[3], abs: !!o[4] })),
+    edited: false,
+  }));
+}
+function libMsg(t) {
+  const el = document.getElementById("libMsg");
+  el.textContent = t;
+  setTimeout(() => { if (el.textContent === t) el.textContent = ""; }, 1800);
+}
+function renderLibInfo() {
+  const n = library.length, e = library.filter(b => b.edited).length;
+  document.getElementById("libCount").textContent = `${n} boards · ${e} edited`;
+  document.getElementById("openTag").textContent = openSlot >= 0 ? `editing #${openSlot + 1}` : "editing —";
+}
+function renderGrid() {
+  const grid = document.getElementById("levelGrid");
+  grid.innerHTML = "";
+  const rows = Math.max(1, Math.ceil(library.length / 10));
+  for (let r = 0; r < rows; r++) {
+    const row = document.createElement("div");
+    row.className = "zoneRow";
+    const lab = document.createElement("span");
+    lab.className = "zoneLab"; lab.textContent = ZONE_EMOJI[r] || "➕";
+    row.appendChild(lab);
+    for (let n = r * 10 + 1; n <= Math.min((r + 1) * 10, library.length); n++) {
+      const b = document.createElement("button");
+      b.className = "lvlBtn"; b.dataset.n = n; b.textContent = n;
+      if (library[n - 1].edited) b.classList.add("edited");
+      if (n - 1 === openSlot) b.classList.add("on");
+      b.addEventListener("click", () => loadLevel(n));
+      row.appendChild(b);
+    }
+    grid.appendChild(row);
+  }
+  renderLibInfo();
+}
+function loadLevel(n) {
+  const l = library[n - 1];
+  if (!l) return;
   pushUndo();
-  const l = LEVELS[parseInt(sel.value) - 1];
-  state.slot = l.n;
+  openSlot = n - 1;
+  state.slot = n;
   state.tx = l.tx;
-  state.recipes = l.obs.map(o => ({ kind: "line", x1: o[0], y1: o[1], x2: o[2], y2: o[3], abs: !!o[4] }));
-  document.getElementById("slotNum").value = l.n;
+  state.recipes = l.recipes.map(r => ({ ...r }));
   document.getElementById("targetX").value = l.tx;
   selected = -1;
   refresh();
-});
+  renderGrid();
+}
+function saveToSlot() {
+  if (openSlot < 0 || openSlot >= library.length) { libMsg("load a board first"); return; }
+  library[openSlot] = { tx: state.tx, recipes: state.recipes.map(r => ({ ...r })), edited: true };
+  saveLibrary();
+  renderGrid();
+  libMsg(`saved #${openSlot + 1} ✓`);
+}
+function addBoard() {
+  library.push({ tx: state.tx, recipes: state.recipes.map(r => ({ ...r })), edited: true });
+  openSlot = library.length - 1;
+  state.slot = openSlot + 1;
+  saveLibrary();
+  renderGrid();
+  refresh(false);
+  libMsg(`added #${openSlot + 1} ✓`);
+}
+document.getElementById("saveSlotBtn").addEventListener("click", saveToSlot);
+document.getElementById("addLevelBtn").addEventListener("click", addBoard);
 document.getElementById("clearBtn").addEventListener("click", () => {
   pushUndo(); state.recipes = []; selected = -1; refresh();
-});
-document.getElementById("slotNum").addEventListener("input", e => {
-  state.slot = Math.max(1, Math.min(50, parseInt(e.target.value) || 1));
-  refresh(false);
 });
 document.getElementById("targetX").addEventListener("input", e => {
   state.tx = parseFloat(e.target.value);
@@ -881,51 +1094,46 @@ document.getElementById("suggestBtn").addEventListener("click", () => {
   refresh();
 });
 
-// ── Collection: bank as many boards as you want, export them all at once ──
-function saveCollection() {
-  try { localStorage.setItem("ricochetCollection", JSON.stringify(collection)); } catch (_) {}
-}
-function renderCollection() {
-  document.getElementById("collCount").textContent = `${collection.length} saved`;
-  const el = document.getElementById("collList");
-  if (!collection.length) {
-    el.innerHTML = "No boards saved yet — design or randomize one, then add it.";
-    return;
-  }
-  el.innerHTML = "";
-  collection.forEach((b, i) => {
-    const chip = document.createElement("span");
-    chip.className = "collChip";
-    chip.innerHTML = `<span>L${i + 1}</span> <span class="b">${b.minB}↗</span> <span class="x">×</span>`;
-    chip.title = `${b.recipes.length} objects · ${b.minB}+ bounce · ${b.total.toFixed(1)}° window — click to load`;
-    chip.addEventListener("click", e => {
-      if (e.target.classList.contains("x")) {
-        collection.splice(i, 1); saveCollection(); renderCollection(); renderExport(); return;
-      }
-      pushUndo();
-      state.tx = b.tx;
-      state.recipes = b.recipes.map(r => ({ ...r }));
-      document.getElementById("targetX").value = state.tx;
-      selected = -1;
-      refresh();
-    });
-    el.appendChild(chip);
-  });
-}
-document.getElementById("addLevelBtn").addEventListener("click", () => {
-  collection.push({
-    tx: state.tx,
-    recipes: state.recipes.map(r => ({ ...r })),
-    minB: solMap && solMap.effMinB >= 0 ? solMap.effMinB : 0,
-    total: solMap ? solMap.total : 0,
-  });
-  saveCollection();
-  renderCollection();
+// ── Library: edit, export, backup ──
+document.getElementById("exportEditedBtn").addEventListener("click", () => {
+  const edited = library.map((b, i) => ({ b, n: i + 1 })).filter(x => x.b.edited);
+  const box = document.getElementById("exportBox");
+  if (!edited.length) { box.value = "// No edited boards. Edit a board and Save it first."; return; }
+  box.value = edited.map(x => caseBlock(x.b.recipes, x.b.tx, x.n)).join("\n\n");
 });
-document.getElementById("exportAllBtn").addEventListener("click", () => {
-  if (!collection.length) return;
-  document.getElementById("exportBox").value =
-    collection.map((b, i) => caseBlock(b.recipes, b.tx, i + 1)).join("\n\n");
+document.getElementById("resetLibBtn").addEventListener("click", () => {
+  if (!confirm("Reset the library to the original stock 50? This discards your in-editor edits (GitHub still has any you pushed).")) return;
+  seedLibrary();
+  saveLibrary();
+  openSlot = -1;
+  renderGrid();
+  document.getElementById("collMsg").textContent = "reset to stock 50";
+});
+document.getElementById("copyCollBtn").addEventListener("click", () => {
+  const json = JSON.stringify(library.map(b => ({ tx: b.tx, recipes: b.recipes, edited: !!b.edited })));
+  const box = document.getElementById("importBox");
+  box.style.display = "block"; box.value = json;
+  if (navigator.clipboard) navigator.clipboard.writeText(json);
+  document.getElementById("collMsg").textContent = "library JSON copied";
+});
+document.getElementById("importCollBtn").addEventListener("click", () => {
+  const box = document.getElementById("importBox");
+  const msg = document.getElementById("collMsg");
+  if (box.style.display === "none") { box.style.display = "block"; box.focus(); msg.textContent = "paste a boards JSON array, then click Import again"; return; }
+  const txt = box.value.trim();
+  if (!txt) { box.focus(); return; }
+  let arr;
+  try { arr = JSON.parse(txt); } catch (_) { msg.textContent = "✗ invalid JSON"; return; }
+  if (!Array.isArray(arr)) { msg.textContent = "✗ expected a JSON array of boards"; return; }
+  let added = 0;
+  for (const b of arr) {
+    if (!b || !Array.isArray(b.recipes) || typeof b.tx !== "number") continue;
+    library.push({ tx: b.tx, recipes: b.recipes.map(r => ({ ...r })), edited: true });
+    added++;
+  }
+  saveLibrary(); renderGrid();
+  box.value = ""; box.style.display = "none";
+  msg.textContent = `imported ${added} board${added === 1 ? "" : "s"} (appended)`;
 });
 
 function refresh(recomputeNow = true) {
@@ -940,13 +1148,30 @@ function refresh(recomputeNow = true) {
 try {
   const saved = localStorage.getItem("ricochetEditor");
   if (saved) state = JSON.parse(saved);
-  const savedColl = localStorage.getItem("ricochetCollection");
-  if (savedColl) collection = JSON.parse(savedColl);
+  const savedLib = localStorage.getItem("ricochetLibrary");
+  if (savedLib) library = JSON.parse(savedLib);
 } catch (_) {}
-document.getElementById("slotNum").value = state.slot;
+if (!Array.isArray(library) || !library.length) seedLibrary();
+if (state.slot >= 1 && state.slot <= library.length) openSlot = state.slot - 1;
 document.getElementById("targetX").value = state.tx;
-renderCollection();
+renderGrid();
 refresh();
+// On load, if the bridge server is running its file is the shared source of truth —
+// pull it so boards Claude authored appear here. Falls back to local when no server.
+fetch(SERVER_BASE + "/library", { cache: "no-store" })
+  .then(r => (r.ok ? r.json() : null))
+  .then(data => {
+    serverOK = true; setServerTag(true);
+    if (Array.isArray(data) && data.length) {
+      library = data;
+      try { localStorage.setItem("ricochetLibrary", JSON.stringify(library)); } catch (_) {}
+      if (state.slot >= 1 && state.slot <= library.length) openSlot = state.slot - 1;
+      renderGrid();
+    } else {
+      pushToServer();   // server up but no file yet — seed it from local
+    }
+  })
+  .catch(() => { /* file:// or server down — stay local */ });
 </script>
 </body>
 </html>

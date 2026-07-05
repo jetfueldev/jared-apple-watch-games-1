@@ -11,11 +11,26 @@ struct Obstacle {
     let type: ObstacleType
 }
 
+/// Reflective circle: the shot caroms off the surface normal.
+struct Bumper {
+    let center: CGPoint
+    let radius: CGFloat
+}
+
+/// Linked ring pair. Enter either ring, exit the other keeping direction.
+struct Portal {
+    let a: CGPoint
+    let b: CGPoint
+    let radius: CGFloat
+}
+
 struct Level {
     let number: Int
     let targetPosition: CGPoint
     let obstacles: [Obstacle]
     let alienIndex: Int
+    let bumpers: [Bumper]
+    let portals: [Portal]
 }
 
 enum LevelGenerator {
@@ -31,7 +46,9 @@ enum LevelGenerator {
             number: n,
             targetPosition: CGPoint(x: def.targetX, y: sceneH - 52),
             obstacles: def.obstacles,
-            alienIndex: (n - 1) % 6
+            alienIndex: (n - 1) % 6,
+            bumpers: def.bumpers,
+            portals: def.portals
         )
     }
 

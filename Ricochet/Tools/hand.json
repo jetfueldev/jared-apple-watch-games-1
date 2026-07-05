@@ -1,0 +1,7 @@
+[
+  { "name": "P1 sealed straight",  "slot": 10, "tx": 100, "recipes": [ {"kind":"line","x1":72,"y1":170,"x2":128,"y2":170}, {"kind":"line","x1":72,"y1":170,"x2":72,"y2":216}, {"kind":"line","x1":128,"y1":170,"x2":128,"y2":216}, {"kind":"portal","ax":100,"ay":118,"bx":100,"by":176,"r":12} ] },
+  { "name": "P2 sealed offset",    "slot": 10, "tx": 100, "recipes": [ {"kind":"line","x1":72,"y1":170,"x2":128,"y2":170}, {"kind":"line","x1":72,"y1":170,"x2":72,"y2":216}, {"kind":"line","x1":128,"y1":170,"x2":128,"y2":216}, {"kind":"portal","ax":48,"ay":128,"bx":100,"by":176,"r":9} ] },
+  { "name": "P3 through-wall",     "slot": 10, "tx": 168, "recipes": [ {"kind":"line","x1":118,"y1":0,"x2":118,"y2":214}, {"kind":"portal","ax":72,"ay":128,"bx":162,"by":150,"r":12} ] },
+  { "name": "P5 portal-then-bank", "slot": 10, "tx": 40,  "recipes": [ {"kind":"portal","ax":120,"ay":120,"bx":150,"by":150,"r":11} ] },
+  { "name": "B1 bumper corner",    "slot": 10, "tx": 178, "recipes": [ {"kind":"bumper","cx":120,"cy":110,"r":20} ] }
+]

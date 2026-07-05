@@ -1,0 +1,41 @@
+RICOCHET — CURATED LEVEL SET (staging)
+======================================
+Boards Jared kept from the editor, solver-validated, in LevelData.swift `case` format.
+Claude appends here as boards are curated; spliced into LevelData.swift once the set is
+ordered and complete. Each entry notes min-bounces / aim-window from the solver.
+
+Not compiled — pure staging text. Source of truth stays LevelData.swift.
+
+--------------------------------------------------------------------------------
+
+# L1 — layered gate (2 bounces, 7.4° window) — reworked from a brutal 0.06° original
+        case 1:
+            return Def(targetX: 90, obstacles: [
+                line(0, 160, 140, 160),
+                line(1, 100, 60, 100),
+                line(118, 100, 199, 100),
+                line(150, 222, 180, 192),
+            ])
+
+# L2 — diagonal bank (2 bounces, 8.0° window) — sparse, asymmetric
+        case 2:
+            return Def(targetX: 121, obstacles: [
+                line(92, 200, 143, 94),
+                line(170, 82, 197, 135),
+            ])
+
+# L3 — lava slash to far-left corner (3 bounces, 6.5° window) — reworked: original was unwinnable
+        case 3:
+            return Def(targetX: 30, obstacles: [
+                line(154, 99, 157, 126),
+                line(116, 129, 30, 42, .absorb),
+            ])
+
+# L4 — four-deflector maze (8 bounces, 2.0° window) — late-game, demanding
+        case 4:
+            return Def(targetX: 36, obstacles: [
+                line(54, 81, 60, 55),
+                line(191, 65, 124, 145),
+                line(76, 116, 8, 192),
+                line(192, 202, 93, 200),
+            ])

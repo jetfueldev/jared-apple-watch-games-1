@@ -12,6 +12,8 @@ enum LevelData {
     struct Def {
         let targetX: CGFloat
         let obstacles: [Obstacle]
+        var bumpers: [Bumper] = []
+        var portals: [Portal] = []
     }
 
     // MARK: - Shape Primitives

@@ -1,0 +1,7 @@
+[
+  { "name": "I1 first portal",   "slot": 10, "tx": 100, "recipes": [ {"kind":"line","x1":72,"y1":170,"x2":128,"y2":170}, {"kind":"line","x1":72,"y1":170,"x2":72,"y2":216}, {"kind":"line","x1":128,"y1":170,"x2":128,"y2":216}, {"kind":"portal","ax":100,"ay":118,"bx":100,"by":176,"r":13} ] },
+  { "name": "I2 side pocket L",   "slot": 10, "tx": 40,  "recipes": [ {"kind":"line","x1":18,"y1":172,"x2":62,"y2":172}, {"kind":"line","x1":18,"y1":172,"x2":18,"y2":205}, {"kind":"line","x1":62,"y1":172,"x2":62,"y2":205}, {"kind":"portal","ax":100,"ay":120,"bx":40,"by":178,"r":13} ] },
+  { "name": "I3 side pocket R",   "slot": 10, "tx": 160, "recipes": [ {"kind":"line","x1":138,"y1":172,"x2":182,"y2":172}, {"kind":"line","x1":138,"y1":172,"x2":138,"y2":205}, {"kind":"line","x1":182,"y1":172,"x2":182,"y2":205}, {"kind":"portal","ax":100,"ay":120,"bx":160,"by":178,"r":13} ] },
+  { "name": "I4 easy bumper",     "slot": 10, "tx": 55,  "recipes": [ {"kind":"line","x1":85,"y1":42,"x2":85,"y2":120}, {"kind":"line","x1":115,"y1":42,"x2":115,"y2":120}, {"kind":"bumper","cx":100,"cy":138,"r":20} ] },
+  { "name": "I5 easy 2-portal",   "slot": 10, "tx": 50,  "recipes": [ {"kind":"portal","ax":75,"ay":110,"bx":50,"by":160,"r":13}, {"kind":"portal","ax":125,"ay":110,"bx":30,"by":70,"r":13} ] }
+]
