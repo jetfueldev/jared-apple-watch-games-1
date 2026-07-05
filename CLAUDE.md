@@ -1,5 +1,15 @@
 # CLAUDE.md
 
+> **New session? Read `claude_status.md` first** — it's the collection dashboard
+> (all 4 games, ship readiness, environment constraints). `claude_appstore.md` is the
+> submission runbook. This CLAUDE.md documents the **Memory** game specifically; its
+> hard rules (no words, zen tone, slow transitions) apply collection-wide.
+>
+> Key facts as of 2026-07-05: 4 games built (Memory, Echo, Shatter, Ricochet) + shared
+> WatchGameKit. App icons DONE for all 4. Nothing submitted yet — remaining work is
+> Apple paperwork + a device build. **Xcode is not installed here (CLT only); the app
+> build/archive/upload happens on Jared's machine.** Launch #1 = Memory.
+
 ## What this is
 
 **Memory** — a word-free emoji-matching memory game for Apple Watch. First of a planned 5-game standalone watchOS game collection. Ships globally without localization because the entire UI uses only emojis, numerals, icons, and haptics. Zero words anywhere in the app.
@@ -81,7 +91,7 @@ State transitions must be slow enough for human comprehension. Don't rush phase 
 
 ## Current milestone
 
-**Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Zen redesign applied. SizePickerView removed. Current focus: polish, clock positioning, and playtesting.
+**Milestones 0-3 complete.** Xcode project running in watchOS simulator. 4 themes (Animals, Food, Vacation, Space) in a 2x2 picker. All 8 grid sizes playable with auto-advance. Zen redesign applied. SizePickerView removed. **App icon added (2026-07-05).** Current focus: polish, clock positioning, and playtesting — then App Store submission as collection launch #1 (see `claude_appstore.md`).
 
 ## Definition of done (any task)
 
