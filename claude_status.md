@@ -17,6 +17,7 @@ Last updated: 2026-07-05.
 | **Echo** | 13 | Simon-style sequence memory, 6 stages, glass pads, screen flashes | Playable, polished transitions | ✅ |
 | **Shatter** | 7 | Brick-breaker, 10 levels, Crown paddle, life indicators, glass bricks | Playable | ✅ |
 | **Ricochet** | 13 | Bounce-shot: 50 hand-crafted levels, side shields, fire button | Playable at 50 levels; **mid-expansion** (see below) | ✅ |
+| **Sentinel** | 7 | Merge/TD defense shooter: moving auto-fire base, descending waves | **M1 built + runs in sim (2026-07-28)**: single base, auto-fire, 5 waves, 3 lives. M2+ (merge/turrets/economy) pending. See `Sentinel/docs/` | ⬜ placeholder |
 | **WatchGameKit** | — | Shared Swift package used across games | — | n/a |
 
 ## Ship readiness
@@ -31,15 +32,30 @@ Last updated: 2026-07-05.
 - Remote: `github.com/jetfueldev/jared-apple-watch-games-1` (private). Everything is
   committed and pushed as of 2026-07-05.
 
-## Environment constraint (important for any coding session)
+## Environment (important for any coding session)
 
-**Xcode is NOT installed on this machine — only Command Line Tools.**
-- `swiftc` works, so pure-logic Swift can be compiled/tested headless (that's how the
-  Ricochet physics port was verified — see `Ricochet/Tools/verify-portal.swift`).
-- `xcodebuild` does NOT work here. **The actual watchOS app build, archive, device
-  run, and upload must happen in full Xcode on Jared's machine.** Don't promise to
-  build/run the app from this session.
-- Image tooling available: `sips` (built-in) and Python **PIL 12.2.0**. Node is available.
+**Xcode 26.6 IS installed** (`/Applications/Xcode.app`) — the old "CLT only" note was wrong.
+`xcode-select` still points at CommandLineTools (switching needs sudo), so prefix Xcode
+commands with the env override instead — no sudo required:
+
+```bash
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -workspace WatchGames.xcworkspace -scheme "Vanguard Watch App" \
+  -destination 'platform=watchOS Simulator,name=Apple Watch Series 11 (42mm)' build
+```
+
+- **Full watchOS build + simulator run works here.** Verified 2026-07-28: built Shatter and
+  Vanguard, booted the 42mm sim, installed + launched + screenshotted gameplay via `simctl`.
+  Watch sims available: Series 11 (42/46mm), Ultra 3 (49mm), SE 3 (40/44mm), watchOS 26.5.
+- **Headless-drive tips for `simctl`:** `simctl boot/install/launch`, then
+  `simctl io <udid> screenshot out.png`. `simctl` has **no tap command**, so to screenshot
+  *gameplay* (past the menu) temporarily point `ContentView` straight at the game view,
+  build, shoot, then revert. Menu shots work as-is.
+- `swiftc` also works for pure-logic headless checks (e.g. `Ricochet/Tools/verify-portal.swift`,
+  `Vanguard/Tools/verify-vanguard.swift`).
+- Archive/upload to App Store still best done in the Xcode GUI (signing), but building &
+  running is fully doable from this session now.
+- Image tooling: `sips` (built-in) and Python **PIL 12.2.0**. Node is available.
 
 ## Ricochet expansion state (the one in-flight thing)
 
