@@ -55,9 +55,30 @@ for n in 1...WaveData.totalWaves {
     prevInterval = w.fireInterval
 }
 
+// --- Platoon economy (M2) ---
+// Growth should fill 3 slots first, then climb tiers, never lose a slot or produce a nil-hole
+// once full, and total tier value must strictly increase every step.
 print("")
+var slots = Platoon.seed(from: [1])
+check(slots.compactMap { $0 } == [1], "seed([1]) should be a single tier-1 unit")
+
+var prevTotal = slots.compactMap { $0 }.reduce(0, +)
+var line = "platoon: [1]"
+for step in 1...12 {
+    slots = Platoon.grow(slots)
+    let filled = slots.compactMap { $0 }
+    let total = filled.reduce(0, +)
+    check(total > prevTotal, "grow step \(step): total tier must increase (\(total) !> \(prevTotal))")
+    if step >= Platoon.slotCount {
+        check(filled.count == Platoon.slotCount, "grow step \(step): once full, all \(Platoon.slotCount) slots stay filled")
+    }
+    line += " → \(filled.sorted(by: >))"
+    prevTotal = total
+}
+print(line)
+
 if failures.isEmpty {
-    print("✅ all \(WaveData.totalWaves) waves valid")
+    print("✅ all \(WaveData.totalWaves) waves valid + platoon growth consistent")
     exit(0)
 } else {
     print("❌ \(failures.count) failure(s):")

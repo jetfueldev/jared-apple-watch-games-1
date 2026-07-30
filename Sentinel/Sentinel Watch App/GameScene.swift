@@ -1,14 +1,16 @@
 import SpriteKit
 import WatchKit
 
-/// Sentinel — M1 scene.
-/// A base at the bottom steers left/right (Digital Crown) and auto-fires straight up.
-/// Enemies descend in a formation; a bullet destroys one; an enemy crossing the defense
-/// line costs a life. Clear the wave → advance. Lose 3 lives → retry the wave.
-/// No merge / turrets / economy yet (M2+). Mirrors Shatter's structure + timing rules.
+/// Sentinel — M2 scene.
+/// A 3-slot PLATOON at the bottom steers left/right (Digital Crown) and auto-fires up.
+/// Each slot holds a unit whose TIER is shown word-free by color + pips; higher tier fires
+/// faster. Killing enemies fills a blue charge capsule; each fill GROWS the platoon (fill
+/// empty slots first, then merge upward). Platoon + charge persist across waves (carried by
+/// the container). Enemy crossing the defense line costs a life; clear the wave → advance;
+/// lose 3 lives → retry the wave from its starting platoon.
+/// Still one-input (steer only). Player-directed merge / side turrets are M3+.
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
-    private let baseCategory:   UInt32 = 0x1 << 0
     private let bulletCategory: UInt32 = 0x1 << 1
     private let enemyCategory:  UInt32 = 0x1 << 2
     private let floorCategory:  UInt32 = 0x1 << 3
@@ -25,10 +27,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     var waveNumber = 1
 
+    // Platoon / economy — set by the container to carry progress across waves.
+    var initialPlatoon: [Int] = [1]    // starting tiers for this wave (nils padded to slotCount)
+    var initialCharge: Int = 0
+
+    private let slotCount = Platoon.slotCount
+    private let slotOffsets: [CGFloat] = [-15, 0, 15]
+    private var platoon: [Int?] = [nil, nil, nil]   // tier per slot, nil = empty
+    private var unitNodes: [SKNode?] = [nil, nil, nil]
+
+    private var charge = 0
+    private var chargeNeeded = 3
+    private var chargeFill: SKShapeNode?
+
+    /// Exposed so the container can carry state into the next wave's scene.
+    var platoonTiers: [Int] { platoon.compactMap { $0 } }
+    var currentCharge: Int { charge }
+
     // Geometry
-    private let floorY: CGFloat = 22        // defense line — enemy crossing this breaches
-    private let baseY: CGFloat = 12
-    private let baseHalfWidth: CGFloat = 21
+    private let chargeY: CGFloat = 5
+    private let lifeDotsY: CGFloat = 12
+    private let baseY: CGFloat = 22
+    private let floorY: CGFloat = 33          // defense line — enemy crossing this breaches
+    private let baseHalfWidth: CGFloat = 26
     private let bulletSpeed: CGFloat = 220
 
     override func sceneDidLoad() {
@@ -36,11 +57,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.gravity = .zero
         physicsWorld.contactDelegate = self
 
+        // seed platoon/charge from carried state
+        platoon = Platoon.seed(from: initialPlatoon)
+        charge = min(initialCharge, chargeNeeded - 1)
+
         buildDefenseLine()
         buildFloorSensor()
         buildBase()
+        buildChargeBar()
         buildLifeIndicators()
         buildWaveLabel()
+        refreshUnits()
     }
 
     // MARK: - Construction
@@ -68,23 +95,43 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func buildBase() {
-        let width: CGFloat = 42
-        let height: CGFloat = 8
-        let node = SKShapeNode(rectOf: CGSize(width: width, height: height), cornerRadius: 3)
-        node.fillColor = SKColor(white: 1.0, alpha: 0.75)
+        let width: CGFloat = 52
+        let height: CGFloat = 4
+        let node = SKShapeNode(rectOf: CGSize(width: width, height: height), cornerRadius: 2)
+        node.fillColor = SKColor(white: 1.0, alpha: 0.55)
         node.strokeColor = .clear
         node.position = CGPoint(x: size.width / 2, y: baseY)
         node.name = "base"
-
-        // faint muzzle nub so the firing direction reads
-        let muzzle = SKShapeNode(rectOf: CGSize(width: 4, height: 4), cornerRadius: 1)
-        muzzle.fillColor = SKColor(red: 0.4, green: 0.7, blue: 1.0, alpha: 0.9)
-        muzzle.strokeColor = .clear
-        muzzle.position = CGPoint(x: 0, y: height / 2 + 1)
-        node.addChild(muzzle)
-
         base = node
         addChild(node)
+    }
+
+    private func buildChargeBar() {
+        let w: CGFloat = 100
+        let track = SKShapeNode(rectOf: CGSize(width: w, height: 3), cornerRadius: 1.5)
+        track.fillColor = SKColor(white: 1.0, alpha: 0.08)
+        track.strokeColor = .clear
+        track.position = CGPoint(x: size.width / 2, y: chargeY)
+        track.zPosition = 8
+        addChild(track)
+
+        let fill = SKShapeNode(rectOf: CGSize(width: w, height: 3), cornerRadius: 1.5)
+        fill.fillColor = SKColor(red: 0.25, green: 0.5, blue: 1.0, alpha: 0.55)   // collection blue
+        fill.strokeColor = .clear
+        fill.position = track.position
+        fill.zPosition = 9
+        chargeFill = fill
+        addChild(fill)
+        updateChargeBar()
+    }
+
+    private func updateChargeBar() {
+        guard let fill = chargeFill else { return }
+        let w: CGFloat = 100
+        let frac = max(0, min(1, CGFloat(charge) / CGFloat(chargeNeeded)))
+        fill.xScale = max(0.001, frac)
+        // keep left-anchored: shift so it grows from the left edge of the track
+        fill.position.x = size.width / 2 - w / 2 + (w * frac) / 2
     }
 
     private func buildLifeIndicators() {
@@ -96,10 +143,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let startX = (size.width - totalWidth) / 2
 
         for i in 0..<3 {
-            let dot = SKShapeNode(circleOfRadius: 3)
+            let dot = SKShapeNode(circleOfRadius: 2.5)
             dot.fillColor = SKColor(white: 1.0, alpha: 0.6)
             dot.strokeColor = .clear
-            dot.position = CGPoint(x: startX + CGFloat(i) * spacing, y: 8)
+            dot.position = CGPoint(x: startX + CGFloat(i) * spacing, y: lifeDotsY)
             dot.zPosition = 10
             addChild(dot)
             lifeIndicators.append(dot)
@@ -127,6 +174,112 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(label)
     }
 
+    // MARK: - Platoon / units
+
+    private func tierColor(_ tier: Int) -> SKColor {
+        switch tier {
+        case 1:  return SKColor(red: 0.5,  green: 0.8,  blue: 1.0, alpha: 0.95)  // blue
+        case 2:  return SKColor(red: 0.3,  green: 0.9,  blue: 0.5, alpha: 0.95)  // green
+        case 3:  return SKColor(red: 1.0,  green: 0.8,  blue: 0.3, alpha: 0.95)  // yellow
+        case 4:  return SKColor(red: 1.0,  green: 0.55, blue: 0.3, alpha: 0.95)  // orange
+        default: return SKColor(red: 0.75, green: 0.5,  blue: 1.0, alpha: 0.95)  // purple (5+)
+        }
+    }
+
+    /// Higher tier fires faster.
+    private func fireInterval(_ tier: Int) -> Double {
+        max(0.18, 0.5 - Double(tier - 1) * 0.07)
+    }
+
+    private func makeUnitNode(tier: Int) -> SKNode {
+        let container = SKNode()
+        let color = tierColor(tier)
+
+        let body = SKShapeNode(rectOf: CGSize(width: 12, height: 8), cornerRadius: 2)
+        body.fillColor = color
+        body.strokeColor = .clear
+        body.position = .zero
+        container.addChild(body)
+
+        // pips: redundant word-free tier signal (color + count)
+        let pipCount = min(tier, 5)
+        let spacing: CGFloat = 2.6
+        let rowW = spacing * CGFloat(pipCount - 1)
+        for p in 0..<pipCount {
+            let pip = SKShapeNode(circleOfRadius: 0.9)
+            pip.fillColor = SKColor(white: 1.0, alpha: 0.9)
+            pip.strokeColor = .clear
+            pip.position = CGPoint(x: -rowW / 2 + CGFloat(p) * spacing, y: 0)
+            container.addChild(pip)
+        }
+        return container
+    }
+
+    private func refreshUnits() {
+        guard let base else { return }
+        for (i, node) in unitNodes.enumerated() {
+            node?.removeFromParent()
+            unitNodes[i] = nil
+        }
+        for (i, tier) in platoon.enumerated() {
+            guard let tier else { continue }
+            let node = makeUnitNode(tier: tier)
+            node.position = CGPoint(x: slotOffsets[i], y: 4)
+            base.addChild(node)
+            unitNodes[i] = node
+            startFiring(node: node, offset: slotOffsets[i], tier: tier)
+        }
+    }
+
+    private func startFiring(node: SKNode, offset: CGFloat, tier: Int) {
+        let color = tierColor(tier)
+        let fire = SKAction.sequence([
+            SKAction.wait(forDuration: fireInterval(tier)),
+            SKAction.run { [weak self] in
+                guard let self, let base = self.base else { return }
+                self.fireBullet(atX: base.position.x + offset, color: color)
+            }
+        ])
+        node.run(SKAction.repeatForever(fire), withKey: "fire")
+    }
+
+    private func fireBullet(atX x: CGFloat, color: SKColor) {
+        guard active else { return }
+        let bullet = SKShapeNode(rectOf: CGSize(width: 2.5, height: 9), cornerRadius: 1.2)
+        bullet.fillColor = color
+        bullet.strokeColor = .clear
+        bullet.position = CGPoint(x: x, y: baseY + 8)
+        bullet.name = "bullet"
+
+        let body = SKPhysicsBody(rectangleOf: CGSize(width: 2.5, height: 9))
+        body.isDynamic = true
+        body.affectedByGravity = false
+        body.linearDamping = 0
+        body.categoryBitMask = bulletCategory
+        body.contactTestBitMask = enemyCategory
+        body.collisionBitMask = 0
+        body.velocity = CGVector(dx: 0, dy: bulletSpeed)
+        bullet.physicsBody = body
+
+        addChild(bullet)
+    }
+
+    /// Economy step: one charge-fill grows the platoon by one increment.
+    /// Fill empty slots first; once full, merge a T1 up, else bump the lowest slot up.
+    private func growPlatoon() {
+        platoon = Platoon.grow(platoon)
+        refreshUnits()
+        WKInterfaceDevice.current().play(.success)
+
+        // brief pulse on the newest/strongest slot for feedback
+        if let node = unitNodes.compactMap({ $0 }).last {
+            node.run(SKAction.sequence([
+                SKAction.scale(to: 1.35, duration: 0.12),
+                SKAction.scale(to: 1.0, duration: 0.12)
+            ]))
+        }
+    }
+
     // MARK: - Wave lifecycle
 
     private func startWave() {
@@ -136,7 +289,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let margin: CGFloat = 22
         let usable = size.width - margin * 2
-        let spawnFrontY = size.height - 20     // front row just below the top
+        let spawnFrontY = size.height - 20
         let rowSpacing: CGFloat = 24
 
         enemiesRemaining = 0
@@ -148,7 +301,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 } else {
                     x = size.width / 2
                 }
-                // higher rows spawn above the top edge so the formation streams in
                 let y = spawnFrontY + CGFloat(row) * rowSpacing
                 spawnEnemy(at: CGPoint(x: x, y: y), speed: wave.enemySpeed, emoji: wave.emoji)
                 enemiesRemaining += 1
@@ -156,7 +308,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         active = true
-        startFiring(interval: wave.fireInterval)
+        refreshUnits()   // (re)start each unit's fire loop
     }
 
     private func spawnEnemy(at position: CGPoint, speed: Double, emoji: String) {
@@ -181,36 +333,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         node.physicsBody = body
 
         addChild(node)
-    }
-
-    private func startFiring(interval: Double) {
-        guard let base else { return }
-        let fire = SKAction.sequence([
-            SKAction.wait(forDuration: interval),
-            SKAction.run { [weak self] in self?.fireBullet() }
-        ])
-        base.run(SKAction.repeatForever(fire), withKey: "fire")
-    }
-
-    private func fireBullet() {
-        guard active, let base else { return }
-        let bullet = SKShapeNode(rectOf: CGSize(width: 2.5, height: 9), cornerRadius: 1.2)
-        bullet.fillColor = SKColor(red: 0.5, green: 0.8, blue: 1.0, alpha: 0.95)
-        bullet.strokeColor = .clear
-        bullet.position = CGPoint(x: base.position.x, y: base.position.y + 8)
-        bullet.name = "bullet"
-
-        let body = SKPhysicsBody(rectangleOf: CGSize(width: 2.5, height: 9))
-        body.isDynamic = true
-        body.affectedByGravity = false
-        body.linearDamping = 0
-        body.categoryBitMask = bulletCategory
-        body.contactTestBitMask = enemyCategory
-        body.collisionBitMask = 0
-        body.velocity = CGVector(dx: 0, dy: bulletSpeed)
-        bullet.physicsBody = body
-
-        addChild(bullet)
     }
 
     // MARK: - Controls
@@ -247,7 +369,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         enemy.name = nil
         bullet?.removeFromParent()
 
-        // small pop
         enemy.physicsBody = nil
         enemy.run(SKAction.sequence([
             SKAction.group([
@@ -258,6 +379,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ]))
 
         WKInterfaceDevice.current().play(.click)
+
+        // economy: a kill charges the meter; a full meter grows the platoon
+        charge += 1
+        if charge >= chargeNeeded {
+            charge = 0
+            growPlatoon()
+        }
+        updateChargeBar()
+
         enemiesRemaining -= 1
         if enemiesRemaining <= 0 { handleWaveComplete() }
     }
@@ -286,7 +416,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         guard !waveCompleted, !gameOver else { return }
         waveCompleted = true
         active = false
-        base?.removeAction(forKey: "fire")
+        unitNodes.forEach { $0?.removeAction(forKey: "fire") }
 
         WKInterfaceDevice.current().play(.success)
 
@@ -319,7 +449,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         guard !gameOver, !waveCompleted else { return }
         gameOver = true
         active = false
-        base?.removeAction(forKey: "fire")
+        unitNodes.forEach { $0?.removeAction(forKey: "fire") }
 
         WKInterfaceDevice.current().play(.failure)
 
@@ -362,6 +492,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         waveCompleted = false
         buildLifeIndicators()
 
+        // restore the platoon + charge this wave began with
+        platoon = Platoon.seed(from: initialPlatoon)
+        charge = min(initialCharge, chargeNeeded - 1)
+        updateChargeBar()
+
         base?.alpha = 1.0
         startWave()
     }
@@ -374,7 +509,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             startWave()
         }
 
-        // cull bullets that leave the top; safety-cull enemies that slip past
         for node in children {
             if node.name == "bullet", node.position.y > size.height + 12 {
                 node.removeFromParent()

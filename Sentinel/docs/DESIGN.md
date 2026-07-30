@@ -89,9 +89,14 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
   Clear the wave → green flash → next. **Pending:** Xcode target (M0 steps in `BUILD.md`)
   + sim/device playtest to tune feel & timing.
 
-- **M2 — merge platoon + economy.** Multi-slot platoon, kill-charge capsule, `+1` unit
-  drops, same-tier merge → higher tier, tier visualized (color+pips). Higher tier = faster
-  fire / more damage.
+- **M2 — merge platoon + economy.** ✅ **Built + verified in sim 2026-07-28.** 3-slot platoon
+  (`Platoon.swift`, pure/testable), kill-charge blue capsule, each fill auto-grows the platoon
+  (fill empty slots → merge T1 up → bump lowest), tier shown by color + pips, higher tier fires
+  faster, each unit fires its own tier-colored bolt column. Platoon + charge persist across
+  waves (carried by container); game-over restores the wave's starting platoon. Growth curve
+  headless-checked in `verify-sentinel.swift`: `[1]→[1,1]→[1,1,1]→[2,1,1]→…→[5,4,4]`.
+  **Kept one-input (steer only)** — auto-grow/auto-merge; player-directed merge deferred (see Q1).
+  **Pending:** playtest to tune chargeNeeded / fire-rate curve / feel.
 
 - **M3 — side turrets + upgrade tree.** Fixed-position edge turrets that auto-fire; spend
   charge to upgrade (the reference's left column). This is the "TD upgrade" half.
@@ -104,8 +109,9 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
 
 ## Open questions (resolve as we hit each milestone)
 
-1. `+1` delivery in M2: auto-drop into next empty slot, or a tappable token the player
-   places (adds a tap input — weigh against the one-input ideal)?
+1. ~~`+1` delivery in M2~~ — RESOLVED for M2: **auto-grow** (charge fill → `Platoon.grow`),
+   no tap, preserves one-input. Player-directed merge (tap slots, or a between-wave breather)
+   is a candidate strategic layer for later — the pure `Platoon` model already supports it.
 2. When the platoon is full (all slots high tier), what does surplus charge do — overflow
    into turret upgrades, or a fire-rate boost?
 3. Enemy floor-breach penalty: lose a life vs. lose a platoon unit? (life is simpler/zen).
