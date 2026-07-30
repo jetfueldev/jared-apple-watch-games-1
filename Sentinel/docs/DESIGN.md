@@ -9,6 +9,29 @@
 > candidates: Salvo, Barrage, Bulwark, Rampart, Bastion, Volley. Word-free in-game, so
 > the name only matters for the App Store listing.
 
+## ⚠️ REDESIGN 2026-07-30 — gate-shooter (supersedes the merge/turret model below)
+
+Playtesting the merge/turret build, Jared redirected the core: **no side guns, no
+auto-merge economy.** The new loop:
+
+- **Bottom:** a growing **cluster of shooters**, all auto-firing straight up; steer with
+  the Crown. More shooters = a wider wall of fire (and more field coverage).
+- **Left lane:** a continuous stream of **"+shooter" gates** — shoot one (a few hits) to
+  break it → +1 shooter.
+- **Right lane:** a stream of **ENCASED power-ups** — the boost is behind concrete/glass;
+  it takes *many* hits to crack the casing (which visibly clears as you shoot) → +1 gun
+  power (more damage per bolt). Sometimes cracking one is the only way to out-gun a wave.
+- **Middle:** enemies descend — stop them or lose lives.
+- **Use it or lose it:** a gate that reaches the bottom is gone, but another is always
+  coming. Still **one input** — steering *is* the decision (defend the middle vs. dip into
+  a side lane to invest). This replaced the auto side-turrets, the kill-charge auto-grow,
+  and the 3-slot merge/tier platoon. Implemented in `GameScene.swift`; `Platoon.swift` +
+  the old `balance-sim.swift` were retired (growth is now player-choice, so playtest-gated).
+
+Everything from here down is the earlier (superseded) merge/TD design, kept for history.
+
+---
+
 ## The pitch in one line
 
 Steer your platoon back and forth along the bottom; it auto-fires upward. Kills charge

@@ -1,13 +1,14 @@
-// Headless sanity check for Sentinel's pure data/logic (WaveData + Platoon).
-// Compile the pure-Foundation files together with this one and run:
+// Headless sanity check for Sentinel's pure wave data.
+// Compile the pure-Foundation WaveData together with this one and run:
 //
-//   cat "Sentinel/Sentinel Watch App/WaveData.swift" "Sentinel/Sentinel Watch App/Platoon.swift" \
+//   cat "Sentinel/Sentinel Watch App/WaveData.swift" \
 //       Sentinel/Tools/verify-sentinel.swift > /tmp/snmain.swift && swiftc /tmp/snmain.swift -o /tmp/sn && /tmp/sn
 //
 // Verifies: table is well-formed and boss invariants hold (difficulty is intentionally
 // varied, not monotonic — mechanically-distinct waves are curated by hand, so we print a
-// per-wave proxy for eyeballing rather than asserting a single dial). Also checks the pure
-// platoon growth rules.
+// per-wave proxy for eyeballing rather than asserting a single dial).
+// (Growth is now driven by shooting descending gates — a player-choice mechanic, so it's
+// playtest-gated rather than sim-checkable here.)
 
 import Foundation
 
@@ -40,37 +41,9 @@ for n in 1...WaveData.totalWaves {
 }
 check(bossCount <= 1, "at most one boss wave allowed (found \(bossCount))")
 
-// --- Platoon economy (M2) ---
-// Growth should fill 3 slots first, then climb tiers, plateau at 3×maxTier, never lose a slot
-// or exceed the cap. Total must strictly increase until capped, then hold.
-print("")
-var slots = Platoon.seed(from: [1])
-check(slots.compactMap { $0 } == [1], "seed([1]) should be a single tier-1 unit")
-
-let capTotal = Platoon.slotCount * Platoon.maxTier
-var prevTotal = slots.compactMap { $0 }.reduce(0, +)
-var line = "platoon: [1]"
-for step in 1...20 {
-    slots = Platoon.grow(slots)
-    let filled = slots.compactMap { $0 }
-    let total = filled.reduce(0, +)
-    check(total >= prevTotal, "grow step \(step): total must not decrease")
-    check(total <= capTotal, "grow step \(step): total \(total) exceeds cap \(capTotal)")
-    check(filled.allSatisfy { $0 <= Platoon.maxTier }, "grow step \(step): a slot exceeds maxTier")
-    if prevTotal < capTotal {
-        check(total > prevTotal, "grow step \(step): must increase until capped (\(total) !> \(prevTotal))")
-    }
-    if step >= Platoon.slotCount {
-        check(filled.count == Platoon.slotCount, "grow step \(step): once full, all \(Platoon.slotCount) slots stay filled")
-    }
-    if total != prevTotal { line += " → \(filled.sorted(by: >))" }
-    prevTotal = total
-}
-print(line + "  (caps at \(capTotal))")
-check(prevTotal == capTotal, "platoon should reach the cap \(capTotal); got \(prevTotal)")
-
 if failures.isEmpty {
-    print("✅ all \(WaveData.totalWaves) waves valid (\(bossCount) boss) + platoon growth consistent")
+    print("")
+    print("✅ all \(WaveData.totalWaves) waves valid (\(bossCount) boss)")
     exit(0)
 } else {
     print("❌ \(failures.count) failure(s):")
