@@ -49,14 +49,16 @@ struct GameContainerView: View {
                 let next = wave + 1
                 if next <= WaveData.totalWaves {
                     currentWave = next
-                    // carry the platoon + charge forward so growth persists across waves
+                    // carry platoon + charge + turrets forward so progress persists across waves
                     let carriedPlatoon = scene.platoonTiers
                     let carriedCharge = scene.currentCharge
+                    let carriedTurrets = scene.turretTiers
                     let newScene = GameScene(size: CGSize(width: 200, height: 240))
                     newScene.scaleMode = .aspectFill
                     newScene.waveNumber = next
                     newScene.initialPlatoon = carriedPlatoon.isEmpty ? [1] : carriedPlatoon
                     newScene.initialCharge = carriedCharge
+                    newScene.initialTurrets = carriedTurrets
                     newScene.updateBasePosition(baseX)
                     scene = newScene
                     sceneID = UUID()

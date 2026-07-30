@@ -98,8 +98,14 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
   **Kept one-input (steer only)** — auto-grow/auto-merge; player-directed merge deferred (see Q1).
   **Pending:** playtest to tune chargeNeeded / fire-rate curve / feel.
 
-- **M3 — side turrets + upgrade tree.** Fixed-position edge turrets that auto-fire; spend
-  charge to upgrade (the reference's left column). This is the "TD upgrade" half.
+- **M3 — side turrets.** ✅ **Built + verified in sim 2026-07-28.** Two fixed edge turrets
+  (bottom corners) that **auto-target the lowest / closest-to-breaching enemy** and fire
+  angled bolts toward it — covering the edges the centered platoon can't while you steer.
+  Tier shown by color + pips (like units); higher tier fires faster. They **upgrade one tier
+  per wave cleared** (capped at 5), persisted across waves and restored on game-over. Second
+  progression track: platoon grows from *kills*, turrets from *wave-clears* — no new input,
+  no currency conflict. **Deferred:** a player-*chosen* upgrade tree (spend to pick which to
+  upgrade) — the "TD choice" layer, alongside the deferred player-directed platoon merge.
 
 - **M4 — wave authoring + curve.** Hand-crafted formations, enemy variety (speed/HP), maybe
   a boss wave, tuned difficulty curve. Best-score/wave persistence via a `ProgressStore`.

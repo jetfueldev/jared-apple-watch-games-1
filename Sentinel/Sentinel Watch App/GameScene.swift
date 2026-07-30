@@ -40,9 +40,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var chargeNeeded = 3
     private var chargeFill: SKShapeNode?
 
+    // Side turrets — stationary edge emplacements that auto-target enemies; upgrade one
+    // tier per wave cleared. Carried across waves by the container.
+    var initialTurrets: [Int] = [1, 1]     // [left, right] starting tiers
+    private let turretMaxTier = 5
+    private var turretTiersState: [Int] = [1, 1]
+    private var turretNodes: [SKNode?] = [nil, nil]
+
     /// Exposed so the container can carry state into the next wave's scene.
     var platoonTiers: [Int] { platoon.compactMap { $0 } }
     var currentCharge: Int { charge }
+    var turretTiers: [Int] { turretTiersState }
 
     // Geometry
     private let chargeY: CGFloat = 5
@@ -51,15 +59,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private let floorY: CGFloat = 33          // defense line — enemy crossing this breaches
     private let baseHalfWidth: CGFloat = 26
     private let bulletSpeed: CGFloat = 220
+    private let turretY: CGFloat = 50
 
     override func sceneDidLoad() {
         backgroundColor = .black
         physicsWorld.gravity = .zero
         physicsWorld.contactDelegate = self
 
-        // seed platoon/charge from carried state
+        // seed platoon/charge/turrets from carried state
         platoon = Platoon.seed(from: initialPlatoon)
         charge = min(initialCharge, chargeNeeded - 1)
+        turretTiersState = normalizedTurrets(initialTurrets)
 
         buildDefenseLine()
         buildFloorSensor()
@@ -67,7 +77,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         buildChargeBar()
         buildLifeIndicators()
         buildWaveLabel()
+        buildTurrets()
         refreshUnits()
+    }
+
+    private func normalizedTurrets(_ t: [Int]) -> [Int] {
+        let l = t.indices.contains(0) ? min(max(t[0], 1), turretMaxTier) : 1
+        let r = t.indices.contains(1) ? min(max(t[1], 1), turretMaxTier) : 1
+        return [l, r]
     }
 
     // MARK: - Construction
@@ -244,12 +261,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     private func fireBullet(atX x: CGFloat, color: SKColor) {
+        spawnBolt(at: CGPoint(x: x, y: baseY + 8), velocity: CGVector(dx: 0, dy: bulletSpeed), color: color)
+    }
+
+    private func spawnBolt(at pos: CGPoint, velocity: CGVector, color: SKColor) {
         guard active else { return }
         let bullet = SKShapeNode(rectOf: CGSize(width: 2.5, height: 9), cornerRadius: 1.2)
         bullet.fillColor = color
         bullet.strokeColor = .clear
-        bullet.position = CGPoint(x: x, y: baseY + 8)
+        bullet.position = pos
         bullet.name = "bullet"
+        bullet.zRotation = atan2(velocity.dy, velocity.dx) - .pi / 2   // point the bolt along travel
 
         let body = SKPhysicsBody(rectangleOf: CGSize(width: 2.5, height: 9))
         body.isDynamic = true
@@ -258,10 +280,90 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         body.categoryBitMask = bulletCategory
         body.contactTestBitMask = enemyCategory
         body.collisionBitMask = 0
-        body.velocity = CGVector(dx: 0, dy: bulletSpeed)
+        body.velocity = velocity
         bullet.physicsBody = body
 
         addChild(bullet)
+    }
+
+    // MARK: - Side turrets
+
+    private func makeTurretNode(tier: Int) -> SKNode {
+        let container = SKNode()
+        let color = tierColor(tier)
+
+        // a small angular emplacement to read differently from platoon units
+        let body = SKShapeNode(rectOf: CGSize(width: 10, height: 10), cornerRadius: 2)
+        body.fillColor = color.withAlphaComponent(0.85)
+        body.strokeColor = SKColor(white: 1.0, alpha: 0.25)
+        body.lineWidth = 0.5
+        container.addChild(body)
+
+        let pipCount = min(tier, 5)
+        let spacing: CGFloat = 2.2
+        let rowW = spacing * CGFloat(pipCount - 1)
+        for p in 0..<pipCount {
+            let pip = SKShapeNode(circleOfRadius: 0.8)
+            pip.fillColor = SKColor(white: 1.0, alpha: 0.9)
+            pip.strokeColor = .clear
+            pip.position = CGPoint(x: -rowW / 2 + CGFloat(p) * spacing, y: 0)
+            container.addChild(pip)
+        }
+        return container
+    }
+
+    private func turretX(_ side: Int) -> CGFloat { side == 0 ? 9 : size.width - 9 }
+
+    private func buildTurrets() {
+        for (i, node) in turretNodes.enumerated() { node?.removeFromParent(); turretNodes[i] = nil }
+        for side in 0..<2 {
+            let node = makeTurretNode(tier: turretTiersState[side])
+            node.position = CGPoint(x: turretX(side), y: turretY)
+            node.zPosition = 6
+            addChild(node)
+            turretNodes[side] = node
+        }
+    }
+
+    private func startTurretFiring() {
+        for side in 0..<2 {
+            guard let node = turretNodes[side] else { continue }
+            let tier = turretTiersState[side]
+            let color = tierColor(tier)
+            let origin = CGPoint(x: turretX(side), y: turretY)
+            // turrets fire a bit slower than platoon units of the same tier
+            let interval = fireInterval(tier) + 0.25
+            let fire = SKAction.sequence([
+                SKAction.wait(forDuration: interval),
+                SKAction.run { [weak self] in self?.fireTurret(from: origin, color: color) }
+            ])
+            node.run(SKAction.repeatForever(fire), withKey: "fire")
+        }
+    }
+
+    private func stopTurretFiring() {
+        turretNodes.forEach { $0?.removeAction(forKey: "fire") }
+    }
+
+    /// Auto-target the live enemy closest to breaching (lowest Y) and fire toward it.
+    private func fireTurret(from origin: CGPoint, color: SKColor) {
+        guard active else { return }
+        var target: SKNode?
+        var lowestY = CGFloat.greatestFiniteMagnitude
+        for node in children where node.name == "enemy" && node.physicsBody != nil {
+            if node.position.y < lowestY { lowestY = node.position.y; target = node }
+        }
+        guard let target else { return }
+        let dx = target.position.x - origin.x
+        let dy = target.position.y - origin.y
+        let len = max(1, sqrt(dx * dx + dy * dy))
+        let vel = CGVector(dx: dx / len * bulletSpeed, dy: dy / len * bulletSpeed)
+        spawnBolt(at: origin, velocity: vel, color: color)
+    }
+
+    /// One tier of turret upgrade per wave cleared (capped).
+    private func upgradeTurrets() {
+        turretTiersState = turretTiersState.map { min($0 + 1, turretMaxTier) }
     }
 
     /// Economy step: one charge-fill grows the platoon by one increment.
@@ -308,7 +410,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         active = true
-        refreshUnits()   // (re)start each unit's fire loop
+        refreshUnits()        // (re)start each unit's fire loop
+        startTurretFiring()   // (re)start the edge turrets' targeting fire
     }
 
     private func spawnEnemy(at position: CGPoint, speed: Double, emoji: String) {
@@ -417,6 +520,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         waveCompleted = true
         active = false
         unitNodes.forEach { $0?.removeAction(forKey: "fire") }
+        stopTurretFiring()
+        upgradeTurrets()   // reward: each cleared wave upgrades the turrets (carried forward)
 
         WKInterfaceDevice.current().play(.success)
 
@@ -450,6 +555,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         gameOver = true
         active = false
         unitNodes.forEach { $0?.removeAction(forKey: "fire") }
+        stopTurretFiring()
 
         WKInterfaceDevice.current().play(.failure)
 
@@ -492,10 +598,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         waveCompleted = false
         buildLifeIndicators()
 
-        // restore the platoon + charge this wave began with
+        // restore the platoon + charge + turrets this wave began with
         platoon = Platoon.seed(from: initialPlatoon)
         charge = min(initialCharge, chargeNeeded - 1)
+        turretTiersState = normalizedTurrets(initialTurrets)
         updateChargeBar()
+        buildTurrets()
 
         base?.alpha = 1.0
         startWave()
