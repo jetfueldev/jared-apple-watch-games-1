@@ -107,11 +107,18 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
   no currency conflict. **Deferred:** a player-*chosen* upgrade tree (spend to pick which to
   upgrade) — the "TD choice" layer, alongside the deferred player-directed platoon merge.
 
-- **M4 — wave authoring + curve.** Hand-crafted formations, enemy variety (speed/HP), maybe
-  a boss wave, tuned difficulty curve. Best-score/wave persistence via a `ProgressStore`.
+- **M4 — wave authoring + curve.** ✅ **Built + verified in sim 2026-07-29.** 10 hand-authored,
+  mechanically-distinct waves (`WaveData`, 5→10) mixing count / enemy **HP** (tanky multi-hit
+  types) / speed — deliberately non-monotonic (variety over a single dial). **Boss wave 10**:
+  one high-HP 👹 with a shrinking red HP bar; breaching it ends the run. Non-lethal hits give
+  damage feedback (pulse + fade); charge only on kill. Best-wave persists via `ProgressStore`
+  (`totalWaves` now 10 → menu/progress follow). Headless verify updated for HP/boss + prints a
+  per-wave totalHP/speed proxy for curation.
 
 - **M5 — polish.** Zen transition timing (≥0.8–1.0 s/phase, ~2.5 s win-to-next, ~3 s
   fail-to-restart), haptics pass, flash colors, real app icon, playtest on device.
+  Known nits to fix here: wave numeral briefly overlaps the boss HP bar at spawn (both
+  top-center); playtest-tune `chargeNeeded` / fire-rate curve / enemy speeds / boss HP.
 
 ## Open questions (resolve as we hit each milestone)
 

@@ -386,26 +386,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func startWave() {
         let wave = WaveData.wave(waveNumber)
-        let cols = wave.cols
-        let rows = wave.rows
-
-        let margin: CGFloat = 22
-        let usable = size.width - margin * 2
-        let spawnFrontY = size.height - 20
-        let rowSpacing: CGFloat = 24
 
         enemiesRemaining = 0
-        for row in 0..<rows {
-            for col in 0..<cols {
-                let x: CGFloat
-                if cols > 1 {
-                    x = margin + usable * CGFloat(col) / CGFloat(cols - 1)
-                } else {
-                    x = size.width / 2
+        if wave.isBoss {
+            spawnBoss(wave)
+            enemiesRemaining = 1
+        } else {
+            let cols = wave.cols
+            let rows = wave.rows
+            let margin: CGFloat = 22
+            let usable = size.width - margin * 2
+            let spawnFrontY = size.height - 20
+            let rowSpacing: CGFloat = 24
+
+            for row in 0..<rows {
+                for col in 0..<cols {
+                    let x: CGFloat
+                    if cols > 1 {
+                        x = margin + usable * CGFloat(col) / CGFloat(cols - 1)
+                    } else {
+                        x = size.width / 2
+                    }
+                    let y = spawnFrontY + CGFloat(row) * rowSpacing
+                    spawnEnemy(at: CGPoint(x: x, y: y), speed: wave.enemySpeed,
+                               emoji: wave.emoji, hp: wave.enemyHP)
+                    enemiesRemaining += 1
                 }
-                let y = spawnFrontY + CGFloat(row) * rowSpacing
-                spawnEnemy(at: CGPoint(x: x, y: y), speed: wave.enemySpeed, emoji: wave.emoji)
-                enemiesRemaining += 1
             }
         }
 
@@ -414,12 +420,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         startTurretFiring()   // (re)start the edge turrets' targeting fire
     }
 
-    private func spawnEnemy(at position: CGPoint, speed: Double, emoji: String) {
+    private func spawnEnemy(at position: CGPoint, speed: Double, emoji: String, hp: Int) {
         let node = SKNode()
         node.position = position
         node.name = "enemy"
+        node.userData = ["hp": hp, "maxHP": hp]
 
         let label = SKLabelNode(text: emoji)
+        label.name = "glyph"
         label.fontSize = 16
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
@@ -433,6 +441,47 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         body.contactTestBitMask = bulletCategory | floorCategory
         body.collisionBitMask = 0
         body.velocity = CGVector(dx: 0, dy: -speed)
+        node.physicsBody = body
+
+        addChild(node)
+    }
+
+    private func spawnBoss(_ wave: Wave) {
+        let node = SKNode()
+        node.position = CGPoint(x: size.width / 2, y: size.height - 28)
+        node.name = "enemy"
+        node.userData = ["hp": wave.enemyHP, "maxHP": wave.enemyHP, "boss": true]
+
+        let label = SKLabelNode(text: wave.emoji)
+        label.name = "glyph"
+        label.fontSize = 40
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        node.addChild(label)
+
+        // word-free boss HP bar above the boss (red, shrinks as it takes damage)
+        let barW: CGFloat = 40
+        let track = SKShapeNode(rectOf: CGSize(width: barW, height: 3), cornerRadius: 1.5)
+        track.fillColor = SKColor(white: 1.0, alpha: 0.12)
+        track.strokeColor = .clear
+        track.position = CGPoint(x: 0, y: 26)
+        node.addChild(track)
+
+        let fill = SKShapeNode(rectOf: CGSize(width: barW, height: 3), cornerRadius: 1.5)
+        fill.fillColor = SKColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 0.9)
+        fill.strokeColor = .clear
+        fill.position = CGPoint(x: 0, y: 26)
+        fill.name = "bossHP"
+        node.addChild(fill)
+
+        let body = SKPhysicsBody(circleOfRadius: 18)
+        body.isDynamic = true
+        body.affectedByGravity = false
+        body.linearDamping = 0
+        body.categoryBitMask = enemyCategory
+        body.contactTestBitMask = bulletCategory | floorCategory
+        body.collisionBitMask = 0
+        body.velocity = CGVector(dx: 0, dy: -wave.enemySpeed)
         node.physicsBody = body
 
         addChild(node)
@@ -469,9 +518,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func handleBulletHit(bullet: SKNode?, enemy: SKNode?) {
         guard let enemy, enemy.name == "enemy" else { return }
-        enemy.name = nil
         bullet?.removeFromParent()
 
+        let hp = (enemy.userData?["hp"] as? Int ?? 1) - 1
+        enemy.userData?["hp"] = hp
+
+        if hp > 0 {
+            // non-lethal hit: quick pulse + fade toward a "damaged" look
+            let maxHP = enemy.userData?["maxHP"] as? Int ?? 1
+            enemy.run(SKAction.sequence([
+                SKAction.scale(to: 1.18, duration: 0.05),
+                SKAction.scale(to: 1.0, duration: 0.05)
+            ]))
+            (enemy.childNode(withName: "glyph") as? SKLabelNode)?.alpha = 0.45 + 0.55 * CGFloat(hp) / CGFloat(max(1, maxHP))
+            if let bar = enemy.childNode(withName: "bossHP") as? SKShapeNode {
+                bar.xScale = max(0.001, CGFloat(hp) / CGFloat(max(1, maxHP)))
+                bar.position.x = -20 + (40 * CGFloat(hp) / CGFloat(max(1, maxHP))) / 2   // keep left-anchored
+            }
+            return
+        }
+
+        // lethal
+        enemy.name = nil
         enemy.physicsBody = nil
         enemy.run(SKAction.sequence([
             SKAction.group([
@@ -497,8 +565,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func handleBreach(enemy: SKNode?) {
         guard let enemy, enemy.name == "enemy" else { return }
+        let isBoss = (enemy.userData?["boss"] as? Bool) ?? false
         enemy.name = nil
         enemy.removeFromParent()
+
+        // a boss breaking the line ends the run outright
+        if isBoss {
+            lives = 0
+            updateLifeIndicators()
+            enemiesRemaining -= 1
+            handleGameOver()
+            return
+        }
 
         lives -= 1
         updateLifeIndicators()
