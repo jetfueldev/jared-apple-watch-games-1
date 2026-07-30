@@ -47,7 +47,7 @@ enum WaveData {
         case 7:  return Wave(rows: 3, cols: 6, enemySpeed: 15, enemyHP: 3, fireInterval: 0.32, emoji: "🤖")  // tanky + dense
         case 8:  return Wave(rows: 3, cols: 6, enemySpeed: 19,             fireInterval: 0.30, emoji: "👽")  // fast + dense
         case 9:  return Wave(rows: 4, cols: 6, enemySpeed: 17, enemyHP: 3, fireInterval: 0.30, emoji: "👽")  // gauntlet
-        case 10: return Wave(rows: 1, cols: 1, enemySpeed: 7,  enemyHP: 40, fireInterval: 0.30, emoji: "👹", isBoss: true)
+        case 10: return Wave(rows: 1, cols: 1, enemySpeed: 7,  enemyHP: 150, fireInterval: 0.30, emoji: "👹", isBoss: true)
         default: return wave(totalWaves)
         }
     }

@@ -41,26 +41,33 @@ for n in 1...WaveData.totalWaves {
 check(bossCount <= 1, "at most one boss wave allowed (found \(bossCount))")
 
 // --- Platoon economy (M2) ---
-// Growth should fill 3 slots first, then climb tiers, never lose a slot or produce a nil-hole
-// once full, and total tier value must strictly increase every step.
+// Growth should fill 3 slots first, then climb tiers, plateau at 3×maxTier, never lose a slot
+// or exceed the cap. Total must strictly increase until capped, then hold.
 print("")
 var slots = Platoon.seed(from: [1])
 check(slots.compactMap { $0 } == [1], "seed([1]) should be a single tier-1 unit")
 
+let capTotal = Platoon.slotCount * Platoon.maxTier
 var prevTotal = slots.compactMap { $0 }.reduce(0, +)
 var line = "platoon: [1]"
-for step in 1...12 {
+for step in 1...20 {
     slots = Platoon.grow(slots)
     let filled = slots.compactMap { $0 }
     let total = filled.reduce(0, +)
-    check(total > prevTotal, "grow step \(step): total tier must increase (\(total) !> \(prevTotal))")
+    check(total >= prevTotal, "grow step \(step): total must not decrease")
+    check(total <= capTotal, "grow step \(step): total \(total) exceeds cap \(capTotal)")
+    check(filled.allSatisfy { $0 <= Platoon.maxTier }, "grow step \(step): a slot exceeds maxTier")
+    if prevTotal < capTotal {
+        check(total > prevTotal, "grow step \(step): must increase until capped (\(total) !> \(prevTotal))")
+    }
     if step >= Platoon.slotCount {
         check(filled.count == Platoon.slotCount, "grow step \(step): once full, all \(Platoon.slotCount) slots stay filled")
     }
-    line += " → \(filled.sorted(by: >))"
+    if total != prevTotal { line += " → \(filled.sorted(by: >))" }
     prevTotal = total
 }
-print(line)
+print(line + "  (caps at \(capTotal))")
+check(prevTotal == capTotal, "platoon should reach the cap \(capTotal); got \(prevTotal)")
 
 if failures.isEmpty {
     print("✅ all \(WaveData.totalWaves) waves valid (\(bossCount) boss) + platoon growth consistent")

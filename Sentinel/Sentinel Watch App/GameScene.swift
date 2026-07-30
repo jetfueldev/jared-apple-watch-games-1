@@ -37,7 +37,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var unitNodes: [SKNode?] = [nil, nil, nil]
 
     private var charge = 0
-    private var chargeNeeded = 3
+    private var chargeNeeded = 5
     private var chargeFill: SKShapeNode?
 
     // Side turrets — stationary edge emplacements that auto-target enemies; upgrade one

@@ -5,22 +5,27 @@ import Foundation
 /// each an Optional tier (nil = empty).
 enum Platoon {
     static let slotCount = 3
+    static let maxTier = 5      // fire rate floors here — higher tiers would be dead weight
 
     /// One economy growth step (triggered when the kill-charge meter fills):
     /// 1. fill the leftmost empty slot with a fresh tier-1 unit, else
     /// 2. if a tier-1 unit exists, merge it up to tier 2, else
-    /// 3. (full, no tier-1) bump the lowest-tier slot up one tier.
-    /// Net effect: the platoon fills to `slotCount` firing columns, then steadily climbs.
+    /// 3. (full, no tier-1) bump the lowest below-max slot up one tier.
+    /// Net effect: the platoon fills to `slotCount` firing columns, then climbs to all-maxTier
+    /// and plateaus (surplus charge is a no-op once fully maxed).
     static func grow(_ slots: [Int?]) -> [Int?] {
         var s = slots
         if let empty = s.firstIndex(where: { $0 == nil }) {
             s[empty] = 1
-        } else if let one = s.firstIndex(where: { $0 == 1 }) {
+        } else if let one = s.firstIndex(where: { $0 == 1 }), maxTier >= 2 {
             s[one] = 2
         } else {
-            var lo = 0
-            for i in s.indices where (s[i] ?? Int.max) < (s[lo] ?? Int.max) { lo = i }
-            s[lo] = (s[lo] ?? 1) + 1
+            // bump the lowest slot that isn't already maxed
+            var lo = -1
+            for i in s.indices where (s[i] ?? Int.max) < maxTier {
+                if lo == -1 || (s[i] ?? Int.max) < (s[lo] ?? Int.max) { lo = i }
+            }
+            if lo >= 0 { s[lo] = (s[lo] ?? 1) + 1 }   // else fully maxed → no-op
         }
         return s
     }

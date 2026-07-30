@@ -22,10 +22,14 @@ enum ProgressStore {
     }
 
     static func completeWave(_ wave: Int) {
-        let next = wave + 1
-        currentWave = min(next, WaveData.totalWaves + 1)
-        if next > highestWave {
-            highestWave = min(next, WaveData.totalWaves + 1)
+        if wave >= WaveData.totalWaves {
+            // whole run complete → record the peak and loop back to a fresh run
+            highestWave = WaveData.totalWaves
+            currentWave = 1
+        } else {
+            let next = wave + 1
+            currentWave = next
+            if next > highestWave { highestWave = next }
         }
     }
 

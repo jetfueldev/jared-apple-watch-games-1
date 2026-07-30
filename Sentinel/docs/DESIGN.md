@@ -120,10 +120,13 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
   replacing the empty placeholder. **Boss-bar / wave-numeral overlap fixed** (numeral to top
   edge, boss spawns lower). Transition timing reviewed and already conforms to the collection
   rules (~2.5 s win-to-next, ~3 s fail-to-restart, ≥0.8 s phases); haptics reviewed —
-  non-lethal hits are silent so tanky enemies/boss don't buzz. **Remaining (needs device/hands
-  -on): playtest-tune `chargeNeeded` / fire-rate curve / enemy speeds / boss HP for feel;**
-  optional: clean end-of-run state (currentWave caps at 11 like Shatter — pre-existing
-  collection pattern).
+  non-lethal hits are silent so tanky enemies/boss don't buzz. A **numbers-based balance pass**
+  is done via a headless combat sim (`Tools/balance-sim.swift`, plays the full run with real
+  DPS/growth/turret math): platoon now **caps at tier 5** (`Platoon.maxTier` — fire rate floors
+  there, so higher tiers were dead weight), economy slowed (`chargeNeeded` 3→5) so the platoon
+  climbs across the run and plateaus ~wave 8, boss HP 40→150 (a ~11 s fight vs a ~23 s breach
+  window). End-of-run now loops to a fresh run (`ProgressStore.completeWave`). **Remaining: final
+  feel tuning on-device** (the sim is conservative/idealized — real aim + spatial spread differ).
 
 ## Open questions (resolve as we hit each milestone)
 
