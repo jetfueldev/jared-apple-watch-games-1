@@ -183,10 +183,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private func buildWaveLabel() {
         let label = SKLabelNode(text: "\(waveNumber)")
         label.fontName = "Menlo-Bold"
-        label.fontSize = 13
+        label.fontSize = 12
         label.fontColor = SKColor(white: 1.0, alpha: 0.22)
         label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: size.width / 2, y: size.height - 12)
+        label.position = CGPoint(x: size.width / 2, y: size.height - 7)
         label.zPosition = 5
         addChild(label)
     }
@@ -448,7 +448,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func spawnBoss(_ wave: Wave) {
         let node = SKNode()
-        node.position = CGPoint(x: size.width / 2, y: size.height - 28)
+        node.position = CGPoint(x: size.width / 2, y: size.height - 46)
         node.name = "enemy"
         node.userData = ["hp": wave.enemyHP, "maxHP": wave.enemyHP, "boss": true]
 

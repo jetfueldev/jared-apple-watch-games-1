@@ -17,7 +17,7 @@ Last updated: 2026-07-05.
 | **Echo** | 13 | Simon-style sequence memory, 6 stages, glass pads, screen flashes | Playable, polished transitions | ✅ |
 | **Shatter** | 7 | Brick-breaker, 10 levels, Crown paddle, life indicators, glass bricks | Playable | ✅ |
 | **Ricochet** | 13 | Bounce-shot: 50 hand-crafted levels, side shields, fire button | Playable at 50 levels; **mid-expansion** (see below) | ✅ |
-| **Sentinel** | 7 | Merge/TD defense shooter: moving auto-fire base, descending waves | **M1 built + runs in sim (2026-07-28)**: single base, auto-fire, 5 waves, 3 lives. M2+ (merge/turrets/economy) pending. See `Sentinel/docs/` | ⬜ placeholder |
+| **Sentinel** | 8 | Merge/TD defense shooter: moving auto-fire base, merge platoon, side turrets, 10 waves + boss | **M1–M5 built + sim-verified (2026-07-30)**: steer+auto-fire, 3-slot merge platoon (kill-charge economy), auto-targeting edge turrets, 10 hand-authored waves w/ enemy HP + a boss. Left: hands-on playtest tuning + device build. See `Sentinel/docs/` | ✅ |
 | **WatchGameKit** | — | Shared Swift package used across games | — | n/a |
 
 ## Ship readiness

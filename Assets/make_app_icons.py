@@ -158,9 +158,58 @@ def shatter():
     finish(img, "ShatterAppIcon.png", "Shatter/Shatter Watch App/Assets.xcassets/AppIcon.appiconset")
 
 
+# ── Sentinel: a guardian shield with an upward chevron + platoon dots ───────
+def sentinel():
+    img = vgrad((32, 46, 70), (10, 16, 30))          # steel indigo
+    d = ImageDraw.Draw(img)
+
+    w = int(S * 0.26)
+    top = CY - int(S * 0.28)
+    shoulder = top + int(S * 0.30)
+    bottom = CY + int(S * 0.31)
+
+    def shield(cx, cy_top, cy_shoulder, cy_bottom, half, fill):
+        d.polygon([
+            (cx - half, cy_top),
+            (cx + half, cy_top),
+            (cx + half, cy_shoulder),
+            (cx, cy_bottom),
+            (cx - half, cy_shoulder),
+        ], fill=fill)
+
+    # layered shield: outer steel border, lighter inner face
+    shield(CX, top, shoulder, bottom, w, (70, 104, 150))
+    inset = 0.80
+    shield(
+        CX,
+        int(CY - (CY - top) * inset),
+        int(CY + (shoulder - CY) * inset),
+        int(CY + (bottom - CY) * inset),
+        int(w * inset),
+        (140, 172, 210),
+    )
+
+    # upward chevron (the "fire up" vanguard mark), bright
+    cw = int(S * 0.13)
+    cyy = CY + int(S * 0.02)
+    ch = int(S * 0.11)
+    lw = int(S * 0.045)
+    d.line([(CX - cw, cyy), (CX, cyy - ch)], fill=(236, 243, 252), width=lw, joint="curve")
+    d.line([(CX + cw, cyy), (CX, cyy - ch)], fill=(236, 243, 252), width=lw, joint="curve")
+
+    # three platoon dots along the base
+    dr = int(S * 0.028)
+    dy = CY + int(S * 0.135)
+    for dx in (-int(S * 0.075), 0, int(S * 0.075)):
+        d.ellipse([CX + dx - dr, dy - dr, CX + dx + dr, dy + dr], fill=(96, 158, 232))
+
+    finish(img, "SentinelAppIcon.png", "Sentinel/Sentinel Watch App/Assets.xcassets/AppIcon.appiconset")
+
+
 if __name__ == "__main__":
     memory()
     echo()
     ricochet()
     shatter()
+    sentinel()
     print("done")

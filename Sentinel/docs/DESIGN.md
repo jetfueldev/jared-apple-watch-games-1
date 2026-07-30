@@ -115,10 +115,15 @@ turrets at the edges, a charge capsule, life dots, a wave numeral. Nothing scrol
   (`totalWaves` now 10 → menu/progress follow). Headless verify updated for HP/boss + prints a
   per-wave totalHP/speed proxy for curation.
 
-- **M5 — polish.** Zen transition timing (≥0.8–1.0 s/phase, ~2.5 s win-to-next, ~3 s
-  fail-to-restart), haptics pass, flash colors, real app icon, playtest on device.
-  Known nits to fix here: wave numeral briefly overlaps the boss HP bar at spawn (both
-  top-center); playtest-tune `chargeNeeded` / fire-rate curve / enemy speeds / boss HP.
+- **M5 — polish.** ✅ **Mostly done 2026-07-30.** Real **app icon** generated (shield +
+  upward chevron + 3 platoon dots, steel-indigo; `Assets/make_app_icons.py` → `sentinel()`),
+  replacing the empty placeholder. **Boss-bar / wave-numeral overlap fixed** (numeral to top
+  edge, boss spawns lower). Transition timing reviewed and already conforms to the collection
+  rules (~2.5 s win-to-next, ~3 s fail-to-restart, ≥0.8 s phases); haptics reviewed —
+  non-lethal hits are silent so tanky enemies/boss don't buzz. **Remaining (needs device/hands
+  -on): playtest-tune `chargeNeeded` / fire-rate curve / enemy speeds / boss HP for feel;**
+  optional: clean end-of-run state (currentWave caps at 11 like Shatter — pre-existing
+  collection pattern).
 
 ## Open questions (resolve as we hit each milestone)
 
